@@ -8,8 +8,13 @@ Main file is [[file:onerun.mac]]. See also examples in [[file:b1.mac]]
 [2] https://sites.google.com/site/pepespanol
 
 * Installation
+Clone the repository
+#+BEGIN_SRC sh
+git clone https://github.com:slitvinov/virtualpep.git
+#+END_SRC
+
 * Testing
-Run the following commands from the directory with the package
+Run the following shell commands from the directory with the package
 #+BEGIN_SRC sh
 maxima -r "batch(\"rtest_sumalg.mac\", 'test);"
 #+END_SRC
