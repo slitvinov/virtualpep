@@ -90,3 +90,22 @@ Lisp implementation version: "GCL 2.6.7"
 * Usage
 Run step by step commands in [[file:b1.mac]], it is computing preliminary
 results (B1) and (B2) from appendix. Then run [[file:onerun.mac]] file.
+* Files
+[[file:b1.mac][b1.mac]] :: compute preliminary results
+
+[[file:onerun.mac][onerun.mac]] :: derive SDPD equations
+
+[[file:rtest_sdpd.mac][rtest_sdpd.mac]] :: tests for sdpd
+
+[[file:rtest_sumalg.mac][rtest_sumalg.mac]] :: tests for sumalg
+
+[[file:sdpd-assume.mac][sdpd-assume.mac]] :: SDPD assumptions
+
+[[file:sdpd-book.mac][sdpd-book.mac]] :: reference formulas from the paper
+
+[[file:sdpd-garbage.mac][sdpd-garbage.mac]] :: a collection of helper functions
+
+[[file:sdpd-rules.mac][sdpd-rules.mac]] :: rules for SDPD
+
+[[file:sumalg.mac][sumalg.mac]] :: a package to work with nested sums
+
