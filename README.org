@@ -10,7 +10,7 @@ Main file is [[file:onerun.mac]]. See also examples in [[file:b1.mac]]
 * Installation
 Clone the repository
 #+BEGIN_SRC sh
-git clone https://github.com:slitvinov/virtualpep.git
+git clone https://github.com/slitvinov/virtualpep.git
 #+END_SRC
 
 * Testing
@@ -89,4 +89,4 @@ Lisp implementation version: "GCL 2.6.7"
 #+END_EXAMPLE
 * Usage
 Run step by step commands in [[file:b1.mac]], it is computing preliminary
-results (B1) and (B2) from appendix. Then run file:onerun.mac file.
+results (B1) and (B2) from appendix. Then run [[file:onerun.mac]] file.
