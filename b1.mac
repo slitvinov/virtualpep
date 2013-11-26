@@ -1,4 +1,4 @@
-/* get properties (B1) and (B2), page 026705-11 */
+/* get properties (B1) and (B2), page 11 */
 
 kill(all);
 reset();
