@@ -1,0 +1,460 @@
+/*
+Work with sums coded as ...
+SU(summand, [var, lo, hi], [var, lo, hi], ...)
+
+*/
+load("abs_integrate"); /* to get safe_op */
+load("opsubst");
+
+/* true if any of the elements is a member of a list */
+anymemeber(elements, l):= catch(for q in elements do if member(q, l) then throw(true), false);
+vpep_freeof(el, expr):= not member(el, listofvarsandsub(expr));
+
+/* some rules for canonical representation of SU (TODO: does not work well) */
+matchdeclare(SUB, subvarp);
+matchdeclare(FUN, lambda([q], block([op: safe_op(q)], not member(op,
+[false, 'HIDEFUN, 'HIDESUB, "[", "*", 'matrix, "+", "-", "/", "^", "."]))));
+matchdeclare([XX, YY], true);
+defrule(hidesub, SUB, HIDESUB(op(SUB), SUB));
+defrule(hidefun, FUN, HIDEFUN(op(FUN), FUN));
+defrule(showsub, HIDESUB(XX, YY), YY);
+defrule(showfun, HIDEFUN(XX, YY), YY);
+
+/* find a positing of a variable in an expression (needed for canonical) */
+posinexpr(v, expr):= block([l],
+  expr: radcan(applyb1(expr, hidesub, hidefun)),
+  l: sublist_indices(listofvarsandsub(expr), lambda([q], q=v)),
+  if emptyp(l) then 0 else first(l));
+
+/* returns a list of all variables and subscripts in the expression
+(subscripts can be listed more than one time) */
+listofvarsandsub_aux(expr):= flatten(map(lambda([v], if subvarp(v) then
+      [v, map(listofvarsandsub, inargs(v))] else v), listofvars(expr)));
+listofvarsandsub(expr):= sublist(listofvarsandsub_aux(vpep_hideindexes(expr)), nothidevarp);
+
+/* true if expr is a `sumel' */
+sumelp(expr):= (safe_op(expr)=SU or safe_op(expr)=nounify(SU)) and
+length(args(expr))>1 and every(lambda([q], listp(q) and length(q)=3), rest(args(expr)));
+
+/* get summand of the sum SU(summand, [var, lo, hi], ..) -> summand */
+getsummand(A):= if not sumelp(A) then error("call getsummand with not a sumel") else first(args(A));
+
+/* get a list of all variables
+SU(summand, [var, lo, hi], [var2, lo2, hi2], ..., ) -> [var, var2, ...] */
+getvars(A):=  if not sumelp(A) then error("call getvars with not a sumel") else map('first, rest(args(A)));
+getvarlohi(A):=  if not sumelp(A) then error("call getvarlohi with not a sumel") else rest(args(A));
+
+vpep_additive(expr):=opsubst(SU=lambda([[l]],
+    block([el: funmake('SU, l), summand, varlohi],
+      summand: getsummand(el),
+      varlohi: getvarlohi(el),
+      if safe_op(summand)="+" then map(lambda([q], funmake('SU, cons(q, varlohi))), summand)
+      else funmake(SU, cons(summand, varlohi)))),
+  expr);
+
+/* apply a function to the summand SU(summand, [var, lo, hi], ..) -> SU(f(summand), [var, lo, hi], ..) */
+vpep_fun(f, A):= block([summand: getsummand(A)], funmake('SU, cons(f(summand), getvarlohi(A))));
+
+/* apply a function too all summand of SUs inside the given expression */
+vpep_funall(f, expr):= opsubst(SU=lambda([[l]],
+    block([el: funmake('SU, l), summand, varlohi],
+      summand: getsummand(el),
+      varlohi: getvarlohi(el),
+      funmake('SU, cons(f(summand), varlohi)))),
+    expr);
+  
+
+/* substitute with internal sum's indexes hidden
+(%i6) vpep_subst(i=n, SU(b(i), [i, 1, n])*a(i));
+(%o6)                      SU(b(i), [i, 1, n]) a(n)
+*/
+vpep_subst([vars]):= block([expr],
+  expr: vpep_hideindexes(last(vars)),
+  expr: apply(subst, endcons(expr, rest(vars, -1))),
+  vpep_showindexes(expr));
+
+/* substitutes indexes in a `sumel' */
+vpep_substindex_sumel([vars]):= if not sumelp(last(vars)) then error("vpep_substindex_sumel called with not a sumel")
+else block([varlohi: getvarlohi(last(vars)),
+  summand: getsummand(last(vars)),
+  substargs: rest(vars, -1)],
+  varlohi: apply(vpep_subst, endcons(varlohi, substargs)),
+  summand: apply(vpep_subst, endcons(summand, substargs)),
+  funmake(SU, cons(summand, varlohi)));
+
+/* substitutes indexes on all levels */
+vpep_substindex([vars]):=subst('SU=lambda([[l]],
+    apply('vpep_substindex_sumel, endcons(funmake('SU, l), rest(vars, -1)))), last(vars));
+
+compfun(p, q, summand):=if p[2]=q[2] and p[3]=q[3] then
+      orderlessp(posinexpr(p[1], summand), posinexpr(q[1], summand))
+      else if p[3]=q[3] then orderlessp(p[2], q[2]) else orderlessp(p[3], q[3]);
+
+/* makes every index unique */
+vpep_bashindices(expr):= subst('SU=lambda([[l]],
+    block([el: funmake(SU, l)],
+      for v in getvars(el) do el: vpep_substindex_sumel(gensym(), v, el),
+      el)),
+  expr);
+
+/* wrap every sumer into a container sumel->SCONTAINER(0, sumel) */
+vpep_addcontainer(expr):= subst('SU=lambda([[l]],
+    SCONTAINER(0, funmake(SU, l))),
+  expr);
+
+/* increase a counter in every container by one */
+vpep_incrcontainer(expr):= subst('SCONTAINER=lambda([scounter, el],
+  funmake(SCONTAINER, [scounter+1, el])),
+expr);
+
+/* for every container call vpep_incrcontainer on the second argument */
+vpep_incrcontainer_inside(expr):= subst('SCONTAINER=lambda([scounter, el],
+  funmake(SCONTAINER, [scounter, vpep_incrcontainer(el)])),
+expr);
+
+/* lo, hi, nestlevel, increase */
+vpep_userindex[other, other, other, other]:=false;
+%SIMP_CANONICAL_PREFIX: 'p;
+vpep_genindex(lo, hi, nestlevel, totalinumber, inumber):= block([udef: vpep_userindex[lo, hi, nestlevel, inumber]],
+  if udef#false then udef else
+  if nestlevel#0 then apply(concat, [%SIMP_CANONICAL_PREFIX, totalinumber+1, 'n, nestlevel])
+  else concat(%SIMP_CANONICAL_PREFIX, totalinumber));
+
+/* try to make a canonical representation of a `sumel' */
+vpep_canonical(expr):= (
+  expr: vpep_bashindices(expr),
+  expr: vpep_addcontainer(expr),
+  expr: vpep_incrcontainer_inside(expr),
+  subst('SCONTAINER=lambda([scounter, el],
+      /* change the order of indexes to canonical */
+      varlohi: sort(getvarlohi(el), lambda([p, q], compfun(p, q, getsummand(el)))),
+      el : funmake(SU, cons(getsummand(el), varlohi)),
+      /* rename indexes */
+      block([totalindexnumber: 0], local(id_hash),
+        for vlh in getvarlohi(el) do block([lo: second(vlh), hi: third(vlh)],
+          do (
+            totalindexnumber : totalindexnumber + 1,
+            if numberp(id_hash[lo,hi]) then id_hash[lo,hi]: id_hash[lo,hi] + 1 else id_hash[lo,hi]: 1,
+            nindex: vpep_genindex(second(vlh), third(vlh), scounter, totalindexnumber, id_hash[lo,hi]),
+            if vpep_freeof(nindex, getsummand(el)) then return('done)),
+          el: vpep_substindex_sumel(
+            nindex,
+            first(vlh), el),
+          el)),
+      el),
+    expr));
+
+/* multiply sum and a "scalar" */
+multscal(c, A):= block([inters, sA: getsummand(A), varlohi: getvarlohi(A)],
+  if (inters: intersection( setify(listofvarsandsub(c)), setify(getvars(A))) , not emptyp(inters)) then
+  for v in listify(inters) do block([g: gensym()], sA: vpep_subst(g, v, sA), varlohi: subst(g, v, varlohi)),
+  funmake(SU, cons(c*sA, varlohi)));
+
+/* multiply two sums */
+multsum(A, B):=block([sA, sB, vA, varlohiA, varlohiB],
+  sA: getsummand(A),
+  sB: getsummand(B),
+  vA: getvars(A),
+  varlohiA: getvarlohi(A),
+  varlohiB: getvarlohi(B),
+  for vlh in varlohiB do
+  if member(first(vlh), vA) or member(first(vlh), listofvarsandsub(sA)) then block([g: gensym()],
+    sB: vpep_subst(g, first(vlh), sB),
+    varlohiB: vpep_subst(g, first(vlh), varlohiB)),
+  for vlh in varlohiA do
+  if member(first(vlh), listofvarsandsub(sB)) then block([g: gensym()],
+    sA: vpep_subst(g, first(vlh), sA),
+    varlohiA: vpep_subst(g, first(vlh), varlohiA)),
+  apply(SU, cons(sA*sB, append(varlohiA, varlohiB))));
+
+/* "Hides" indexes by replacing them i -> i__ */
+hidevarp(expr):= block([s: string(expr)], slength(s)>2 and ssearch("__", s, 'sequal, slength(s)-1, slength(s)+1)#false);
+nothidevarp(expr):= not hidevarp(expr);
+var2hide(expr):= concat(expr, "__");
+hide2var(expr):= if hidevarp(expr) then 
+  block([s: string(expr)],
+    parse_string(sremove("__", s, 'sequal, slength(s)-1, slength(s)+1)))
+  else error("attemt to use hide2var with inproper argument");
+vpep_hideindexes_aux(expr):=block([summand: getsummand(expr),
+    vars: getvars(expr),
+  varlohi: getvarlohi(expr),
+  newvarlohi: []],
+  for vlh in varlohi do block([hname: var2hide(first(vlh))],
+    summand: subst(hname, first(vlh), summand),
+    newvarlohi: endcons(cons(hname, rest(vlh)), newvarlohi)),
+  funmake(SU, cons(summand, newvarlohi)));
+vpep_hideindexes(expr):= subst('SU = lambda([[l]], vpep_hideindexes_aux(funmake(SU, l))), expr);
+
+/* "Shows" hiden indexes by replacing them i__ -> i */
+vpep_showindexes_aux(expr):=block([summand: getsummand(expr),
+      vars: getvars(expr),
+  varlohi: getvarlohi(expr),
+  newvarlohi: []],
+  for vlh in varlohi do block([vname: hide2var(first(vlh))],
+    summand: subst(vname, first(vlh), summand),
+    newvarlohi: endcons(cons(vname, rest(vlh)), newvarlohi)),
+  funmake(SU, cons(summand, newvarlohi)));
+vpep_showindexes(expr):= subst('SU = lambda([[l]], vpep_showindexes_aux(funmake(SU, l))), expr);
+
+/* Combining two nested sums into one double-sum. Takes a list of
+arguments of the outter SU SU(SU(x[i], [i, 1, 10]), [j, 1, 10]) shoud
+pass [SU(x[i], [i, 1, 10]), [j, 1, 10]] as an argument */
+vpep_nestsum(aA):=block([aB: first(aA), sA, sB, vA],
+  sB: getsummand(aB),
+  vA: getvars(funmake(SU, aA)),
+  newvarlohi: getvarlohi(funmake(SU, aA)),
+  for vlh in getvarlohi(aB) do
+  if member(first(vlh), vA) then block([g: gensym()],
+    sB: vpep_subst(g, first(vlh), sB),
+    newvarlohi: endcons([g, second(vlh), third(vlh)], newvarlohi))
+  else newvarlohi: endcons(vlh, newvarlohi),
+  apply(SU, cons(sB, newvarlohi)));
+
+vpep_expandmprod(expr):=  block([p : [], q : [], simp: true],
+    for xk in inargs(expr) do 
+    if sumelp(xk) then q : cons(xk,q) else p : cons(xk,p),
+    p : xreduce("*", p),
+    if not emptyp(q) then (q : xreduce(multsum, q), multscal(p, q)) else p );
+
+/* exapnd sumel: moves all multiplicative factors to inside, changes all nested SU to double sumels */
+declare(vpep_expand_aux, evfun);
+declare(expand, evfun);
+declare(vpep_additive, evfun);
+vpep_fullexpand(expr):= ev(vpep_additive(expr), vpep_expand_aux, expand, infeval);
+vpep_expand(expr):= ev(vpep_additive(expr), vpep_expand_aux, infeval);
+vpep_expand_aux(expr):=subst('SU=lambda([[l]], if sumelp(first(l)) then vpep_nestsum(l) else funmake(SU, l)),
+  subst("*"=lambda([[l]], vpep_expandmprod(apply("*", l))),
+    expr));
+
+/* sumel to maxima sum */
+sumel2sum(expr):= subst('SU=lambda([[l]], apply(sum, flatten(l))), vpep_double2nested(expr));
+
+/* transforms `maxima' sum to sumel */
+sum2sumel(expr):= subst(nounify(sum)=lambda([[arg]], funmake(SU,
+      [first(arg), rest(arg)])), expr);
+
+declare(vpep_kroninsum, evfun);
+vpep_kron(expr):= ev(expr, vpep_kroninsum, infeval);
+
+/* simplify kron_delta in a product 
+(%i82) vpep_kroninprod ( kron_delta(i, j) * P(j)*P(i)*S(j)*S(i));
+                          2     2
+(%o82)                   P (i) S (i) kron_delta(i, j)
+*/
+vpep_kroninprod(expr):= apply1(expr, rvpep_withkron1, rvpep_withkron1);
+
+/* simplify kron_delta in a sum
+(%i83) vpep_kroninsum( SU(kron_delta(i,j)*a(i), [i, 1, n]) );
+(%o83)                               a(j)
+*/
+vpep_kroninsum(expr):= opsubst('SU=lambda([[l]],
+    expr: funmake('SU, l),
+    block([summand, vars, p, sl: [], fst, scn, newvarlohi, idx, res],
+      summand: vpep_kron(getsummand(expr)),
+      if not safe_op(summand)="*" then return(expr),
+      vars: getvars(expr),
+      for p in inargs(summand) do
+      if safe_op(p)=kron_delta then (
+        fst: first(args(p)),
+        scn: second(args(p)),
+        if member(fst, vars) then sl: cons([fst, scn], sl)
+        else if member(scn, vars) then sl: cons([scn, fst], sl)),
+      if emptyp(sl) then return(expr),
+      newvarlohi: getvarlohi(expr),
+      for idx in sl do (
+        summand: vpep_subst(second(idx), first(idx), summand),
+        newvarlohi: sublist(newvarlohi, lambda([q], first(q)#first(idx)))),
+      if emptyp(newvarlohi) then summand else apply(SU, cons(summand, newvarlohi)))),
+  expr);
+
+/* vpep_const simplifies case with no dependencies on a index
+(%i93) vpep_const( SU(a(i), [i, 1, n], [j, 1, m]) );
+(%o93)                       SU(a(i) m, [i, 1, n])
+*/
+vpep_const(expr):= subst('SU=lambda([[l]],
+    expr: funmake(SU, l),
+    block([summand: getsummand(expr),
+      varlohi: getvarlohi(expr),
+      newvarlohi],
+      newvarlohi: varlohi,
+      for v in varlohi do (
+        if not member(first(v), listofvarsandsub(summand)) then (
+          summand: summand*(third(v)-second(v)+1),
+          newvarlohi: sublist(newvarlohi, lambda([q], first(q)#first(v))))),
+      if emptyp(newvarlohi) then summand else funmake(SU, cons(summand, newvarlohi)))),
+  expr);
+
+load("partition");
+block([prederror: true],
+  matchdeclare(ss, partition_expression("*",lambda([u],
+        anymemeber(%LIST_OF_VARS, listofvarsandsub(u))),1,"*","[",'ANSss)));
+defrule(dsumr,ss,ANSss);
+
+
+/* plugs a constant out of the SU
+(%i88) vpep_outative( SU(b*a(i), [i, 1, n]) );
+(%o88)                       b SU(a(i), [i, 1, n])
+*/
+vpep_outative(arg):= subst('SU=lambda([[l]],
+    expr: funmake('SU, l),
+    block([summand: getsummand(expr)],
+      if safe_op(summand)="*" then (
+        %LIST_OF_VARS: getvars(expr),
+        lists: dsumr(summand),
+        if second(lists)=0 then 0
+        else if second(lists)=1 then expr
+        else if second(lists)=-1 then -funmake(SU, cons(first(lists), getvarlohi(expr)))
+        else second(lists)*funmake(SU, cons(first(lists), getvarlohi(expr))))
+      else expr)),
+  arg);
+
+/* split sum if there is a muliplicator which does not depen on an index
+(%i84) vpep_splitsum(SU(a(i,j)*b(k), [i, 1, n], [j, 1, n], [k, 1, n]));
+(%o84)     SU(SU(SU(a(i, j), [i, 1, n]), [j, 1, n]) b(k), [k, 1, n])
+*/
+vpep_splitsum(arg):= opsubst('SU=lambda([[l]],
+    expr: funmake('SU, l),
+    block([summand: getsummand(expr),
+      varlohi: getvarlohi(expr)],
+      if safe_op(summand)="*" and length(varlohi)>1 then 
+      catch (
+        for vlh in varlohi do block([lists],
+          %LIST_OF_VARS: [first(vlh)],
+          lists: dsumr(summand),
+          if second(lists)#1 then block([intesum: funmake(SU, [first(lists), vlh]), extersum],
+            extersum: funmake(SU, cons(second(lists)*intesum, delete(vlh, varlohi))),
+            throw(vpep_splitsum(extersum)))),
+        expr)
+      else expr)),
+  arg);
+
+/* replace all multiply sums with nested sums */
+vpep_double2nested_aux(expr):= block([res: getsummand(expr)],
+  for varlohi in getvarlohi(expr) do res: funmake(SU, cons(res, [varlohi])),
+  res);
+vpep_double2nested(expr):= subst('SU = lambda([[l]], vpep_double2nested_aux(funmake(SU, l))), expr);
+
+/*
+if sumel has more than one index it can be a convalution of
+symmetric and antisymmetric tensors. We test all pairs of indexes <i>
+and <j> to see if the summand is in the form
+S(i,j)*A(i,j)*const
+*/
+
+/* return a list of all pairs
+(%i48) pairs([1, 2], [101, 102]);
+(%o48)             [[1, 101], [1, 102], [2, 101], [2, 102]]
+*/
+pairs(a,b):=listify(cartesian_product(setify(a), setify(b)));
+
+/* True if `p' is a symmetric operator */
+symmetric_operatorp(p):= block([],
+  if atom(p) then return(false),
+  if symbolp(part(p,0)) and featurep(part(p,0), symmetric) then return(inargs(p)),
+  if safe_op(p)="*" and inpart(p, 1)=-1 then p: inpart(p, 2),
+  if safe_op(p)="^" and integerp(inpart(p, 2)) and symmetric_operatorp(inpart(p, 1))#false
+    then return(symmetric_operatorp(inpart(p, 1))) ,
+  if safe_op(p)="^" and evenp(inpart(p, 2)) and antisymmetric_operatorp(inpart(p, 1))#false
+    then return(antisymmetric_operatorp(inpart(p, 1))),
+  false);
+
+/* True if `p' is a anti symmetric operator */
+antisymmetric_operatorp(p):= block([],
+  if atom(p) then return(false),
+  if symbolp(part(p,0)) and featurep(part(p,0), antisymmetric) then return(inargs(p)),
+  if safe_op(p)="*" and inpart(p, 1)=-1 then p: inpart(p, 2),
+  if safe_op(p)="^" and oddp(inpart(p, 2)) and antisymmetric_operatorp(inpart(p, 1))#false
+     then return(antisymmetric_operatorp(inpart(p, 1))),
+  false);
+
+vpep_symantisym_aux(expr):= block([summand: getsummand(expr),
+  vars: getvars(expr)],
+  if safe_op(summand)="*" and length(vars)>1 then
+  catch
+  (for iq in vars do for jq in vars do if iq#jq then
+  block([spart: 0, apart: 0],
+    for p in inargs(summand) do (
+      if symmetric_operatorp(p)#false and sort(symmetric_operatorp(p))=sort([iq, jq]) then (spart: spart + 1)
+      else if antisymmetric_operatorp(p)#false and sort(antisymmetric_operatorp(p))=sort([iq, jq]) then (apart: apart + 1)
+      else if member(iq, listofvarsandsub(p)) or member(jq, listofvarsandsub(p)) then return('done)),
+    if oddp(apart) and spart>0 then throw(0)), expr)
+  else expr);
+
+vpep_symantisym(expr):= subst('SU = lambda([[l]], vpep_symantisym_aux(funmake(SU, l))), expr);
+
+vpep_deleteindex(expr, var):= if not sumelp(expr) then error("vpep_deleteindex is called with not a sumel")
+else if not member(var, getvars(expr)) then error("cannot find an index")
+else block([summand: getsummand(expr),
+  varlohi: getvarlohi(expr)],
+  if length(varlohi)=1 then summand else (varlohi: sublist(varlohi, lambda([q], first(q)#var)),
+    funmake('SU, cons(summand, varlohi))));
+
+vpep_findcommon(el, l):= catch(for vlhfst in getvarlohi(el) do
+  if every(lambda([q], member(vlhfst, getvarlohi(q))), l) then throw(vlhfst), []);
+
+/* Combines all sumels of an addition that have the same upper and lower bounds */
+block([prederror: true],
+  matchdeclare(ss, partition_expression("[",sumelp,[],cons,"[",'ANSss)));
+defrule(dsumsumel,ss,ANSss);
+declare(vpep_combine2, evfun);
+vpep_combine(expr):=ev(expr, vpep_combine2, infeval);
+vpep_combine2(expr):= subst("+"=lambda([[l]], block([lists],
+    lists: dsumsumel(l),
+    if emptyp(first(lists)) then xreduce("+", second(lists)) else vpep_combine_aux(first(lists)) + xreduce("+", second(lists)))),
+  expr);
+vpep_combine_aux(l):= 
+    catch(
+      for el in l do block([cmn, vlhfst],
+        vlhfst: first(getvarlohi(el)),
+        cmn: vpep_findcommon(el, l),
+        if not emptyp(cmn) then block([s],
+          s: map(lambda([q], vpep_deleteindex(q, first(cmn))), l),
+          s: apply("+", s),
+          throw(funmake(SU, cons(s, [cmn]))))),
+      xreduce("+", l));
+
+vpep_kronilike(expr, index):= block([res],
+  %INDEX_I_LIKE: if listp(index) then index else [index],
+  res: apply1(apply1(expr, rvpep_kronilike1), rvpep_kronilike2),
+  res);
+  
+block([simp: false],
+  matchdeclare(pp, lambda([q], not vpep_freeof(jj, q))),
+  matchdeclare(jj, true),
+  kill(%INDEX_I_LIKE),
+  matchdeclare(ii, lambda([q], if not listp(%INDEX_I_LIKE) then
+      error("%INDEX_I_LIKE must be a list"),
+      member(q, %INDEX_I_LIKE))),
+  defrule(rvpep_kronilike1, pp*kron_delta(ii, jj), vpep_subst(jj=ii, pp)*kron_delta(ii, jj)),
+  defrule(rvpep_kronilike2, pp*kron_delta(jj, ii), vpep_subst(jj=ii, pp)*kron_delta(jj, ii)))$
+
+block([simp: false],
+  matchdeclare(uu, lambda([q], safe_op(q)='SU)),
+  matchdeclare([ii,jj], all),
+  matchdeclare(pp, lambda([q], not vpep_freeof(jj, q))),
+  defrule(rvpep_withkron1, pp*kron_delta(ii,jj), vpep_subst(jj=ii, pp)*kron_delta(ii,jj)),
+  /* do I need this? */
+  defrule(rvpep_withkron2, kron_delta(ii,jj)*pp, vpep_subst(jj=ii, pp)*kron_delta(ii,jj)));
+
+/* diff of the expression with respect to the function f(i)
+TODO: can handle only very simple situations (DO NOT TRUST IT)
+*/
+load("simplifying.lisp");
+vpep_table[otherwise,otherwise]:= false;
+fn_vpep_diff(expr, var):=
+block([prederror: true, df: lambda([q], vpep_diff(q, var)), rdiff: lambda([q], diff(q, var)), op: safe_op(expr)],
+  if op="+" then map( df, expr)
+  else if op="*" then block([a: first(inargs(expr)), b: apply("*", rest(inargs(expr)))],
+    df(a)*b + a*df(b))
+  else if op="^" and mapatom(inpart(expr, 2)) then block([a: inpart(expr, 2), y: inpart(expr, 1)], a*y^(a-1)*df(y))
+  else if op='SU then vpep_fun(df, expr)
+  else if op='kron_delta then 0
+  else if constantp(expr) then 0
+  else if vpep_table[op,safe_op(var)]#false then block([idx: append(inargs(expr), inargs(var))],
+    apply(vpep_table[op,safe_op(var)], idx))
+  /* assume all other creatures are zero */
+  else if mapatom(expr) then 0
+  else if op#false then 0
+  else simpfuncall('vpep_diff, expr, var));
+simplifying('vpep_diff,'fn_vpep_diff)$
+

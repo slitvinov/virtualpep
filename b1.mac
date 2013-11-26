@@ -1,0 +1,32 @@
+/* get properties (B1) and (B2), page 026705-11 */
+
+kill(all);
+reset();
+load("sumalg.mac")$
+load("sdpd-assume.mac")$
+load("sdpd-rules.mac")$
+load("sdpd-book.mac")$
+
+/* define a chain of operation*/
+HUGE(expr):= factor(vpep_const(vpep_kron(vpep_const(vpep_fullexpand(find_prod_l(vpep_fullexpand(expr), dwp_predicate))))))$
+
+HUGE(tr(i,ip)*tr(j,jp)*dt);
+HUGE(tr(i,ip)*wave(j,jp,al,alp));
+HUGE(wave(i,ip,al,alp)*wave(j,jp,be,bep));
+aux(i, j, al, be):= A(i,j)*wave(i, j, al, be) +
+                        B(i,j)*kron_delta(al,be)/ndim*tr(i, j)$
+r: HUGE(aux(i, ip, al, alp) * aux(j, jp, be, bep))$
+
+/* check if it agrees with a "book" values for ndim=3 (should be zero) */
+fullratsimp(subst(ndim=3, r) - b2_lhs*dt);
+
+/* make it prettier
+   substitute kron_delta=kd to reduce clatter */
+r: opsubst(kron_delta=kd, r)$
+/* ... and factor */
+r: factorsum(r)$
+r: substinpart(factor(piece), r, 5, [3, 4])$
+r: substinpart(factor(piece), r, 5, [1, 2])$
+r: multthru(r);
+
+

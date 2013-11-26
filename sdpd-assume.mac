@@ -1,0 +1,17 @@
+declare(sum, linear);
+declare([al, be, bep, alp, i, j, ip, jp, k, Np, ndim], integer);
+assume(al<=ndim, al>=1);
+assume(be<=ndim, be>=1);
+assume(alp<=ndim, alp>=1);
+assume(bep<=ndim, bep>=1);
+
+assume(i<=Np, i>=1);
+assume(j<=Np, j>=1);
+assume(k<=Np, k>=1);
+assume(ip<=Np, ip>=1);
+assume(jp<=Np, jp>=1);
+
+declare(A, symmetric);
+declare(B, symmetric);
+declare(C, symmetric);
+declare(dV, antisymmetric);

@@ -1,0 +1,225 @@
+kill(all)$
+reset()$
+load("sumalg.mac")$
+load("sdpd-assume.mac")$
+load("sdpd-rules.mac")$
+load("sdpd-book.mac")$
+load("sdpd-garbage.mac")$
+
+/* define indexes to substitute for vpep_canonical
+lo, hi, nest level,  number
+to make sums look better
+*/
+vpep_userindex[1, ndim, 0, 1]: alp$
+vpep_userindex[1, ndim, 1, 1]: bep$
+vpep_userindex[1, Np,   0, 1]: k$
+vpep_userindex[1, Np,   0, 2]: ip$
+
+/*
+SU is a "sum element" an object I use to represent sums. It looks like this
+SU(summand, [i, ilow, ihi], ... , [j, jlow, jhi])
+
+Operations for SU are defined in sumalg.mac. For example multiplication
+(%i84) vpep_expand( SU(a(i), [i, 1, n])*SU(b(i), [i, 1, m]));
+(%o84)         SU(a(g2031192) b(i), [i, 1, m], [g2031192, 1, n])
+Note the index changed.
+
+vpep_canonical changes the index
+(%i85) vpep_canonical(vpep_expand( SU(a(i), [i, 1, n])*SU(b(i), [i, 1, m])));
+(%o85)              SU(b(p1) a(p2), [p1, 1, m], [p2, 1, n])
+
+vpep_outative plugs a constant out of the SU
+(%i88) vpep_outative( SU(b*a(i), [i, 1, n]) );
+(%o88)                       b SU(a(i), [i, 1, n])
+
+vpep_kroninsum simplifies with kron_delta
+(%i91) vpep_kron( SU(kron_delta(i,j)*a(i), [i, 1, n]) );
+(%o91)                               a(j)
+
+vpep_const simplifies case with no dependencies on a index
+(%i93) vpep_const( SU(a(i), [i, 1, n], [j, 1, m]) );
+(%o93)                       SU(a(i) m, [i, 1, n])
+
+you can go back and forward between SU and maxima sum
+(%i90) sumel2sum( SU(a(i,j), [i, 1, n], [j, 1, m]) );
+                               m     n
+                              ====  ====
+                              \     \
+(%o90)                         >     >    a(i, j)
+                              /     /
+                              ====  ====
+                              j = 1 i = 1
+(%i94) sum2sumel('sum('sum(a(i,j),i,1,n),j,1,m));
+(%o94)               SU(SU(a(i, j), [i, 1, n]), [j, 1, m])
+                              
+
+...and so on... See also rtest_sumalg.mac for more examples
+
+
+the form on the thermal noise (see eq. (49))
+i,j,k,ip,jp are particle indexes, Np is a number of particles
+al, be, alp, bep are coordinate indexes (X, [Y], [Z]), ndim is a number of dimensions (1, 2, 3),
+define an auxiliary object to simplify notation
+*/
+aux(i, j, al, be):= A(i,j)*wave(i, j, al, be) +
+                        B(i,j)*kron_delta(al,be)/ndim*tr(i, j)$
+dvwave(i, al):=SU(aux(i, ip, al, alp)*ee(i, ip, alp),
+  [ip, 1, Np], [alp, 1, ndim]) / m$
+dswave(i):= (
+  -1/2* SU( SU(aux(i, ip, alp, bep)*ee(i,ip,alp)*vv(i,ip,bep), [alp, 1, ndim], [bep, 1, ndim]),
+    [ip, 1, Np]) + SU(C(i,ip)*dV(i,ip), [ip, 1, Np])
+  ) / T(i)$
+
+/*
+
+calculate RHS in (B3): opening up all sums and use Ito rules, summation
+with kron_delta, normalization for eij  etc (see sdpd-rules.mac and sdpd-assume.mac),
+compare with "book" values I typed in from the paper (see sdpd-book.mac)
+ALLINONE is a chain of SU transformations defined in sdpd-rules.mac
+
+I did not fit the from of the equations to match exactly the one in
+the paper. Instead I transform the "book" value.
+
+*/
+dvdv: dvwave(i, al) * dvwave(j, be)$
+/* I got this one ... */
+dvdv: vpep_canonical(vpep_outative(ALLINONE(dvdv)));
+/* the difference with the book value should be zero */
+fullratsimp(m^2*dvdv/dt - vpep_outative(vpep_fullexpand(sum2sumel(dvdv_book))));
+
+dvds: dvwave(i, al) * dswave(j)$
+dvds: vpep_canonical(vpep_outative(ALLINONE(dvds)))$
+/* Products kron_delta(i,j)*x(i) and kron_delta(i,j)*x(j) are equal
+For comparison I will choose the same index as the paper did.
+*/
+dvds_maxima: vpep_kronilike(expand(m*T(j)*dvds/dt), i)$
+dvds_ref: vpep_canonical(vpep_outative(vpep_fullexpand(sum2sumel(dvds_book))));
+fullratsimp(dvds_maxima - dvds_ref);
+
+dsdv: dswave(i) * dvwave(j, al)$
+dsdv: vpep_canonical(vpep_outative(vpep_outative(ALLINONE(dsdv))))$
+dsdv_ref: vpep_canonical(vpep_outative(vpep_fullexpand(sum2sumel(dsdv_book))))$
+fullratsimp(m*T(i)*dsdv/dt - dsdv_ref);
+
+dsds:     dswave(i) * dswave(j)$
+dsds_ref: vpep_canonical((vpep_outative(vpep_fullexpand(sum2sumel(dsds_book)))))$
+/* this took me more transformations */
+dsds: vpep_outative(ALLINONE(dsds))$
+dsds: vpep_splitsum(dsds)$
+dsds: vpep_outative(dsds)$
+dsds: vpep_canonical(dsds)$
+dsds: find_ee2(dsds)$
+dsds: vpep_fullexpand(dsds)$
+dsds: vpep_outative(dsds)$
+dsds: vpep_kroninprod(dsds)$
+dsds: vpep_const(dsds)$
+dsds: vpep_canonical(dsds)$
+dsds_maxima: vpep_kronilike(expand(T(i)*T(j)*dsds/dt), i);
+fullratsimp(dsds_maxima - dsds_ref);
+
+/* now to derivatives ...
+
+I will define "elemental" derivatives like
+dT[i]/dT[j], dv[i,al]/dv[j,be] and so on
+
+indexes in lambda are formed like this
+diff(T(i)/T(j)) gives [i, j]
+diff(v(i, al)/v(j, be)) gives [i, al, j, be]
+
+If a derivative is not given it is zero (see fn_vpep_diff in
+sumalg.mac)
+
+*/
+vpep_table[T, T]   : lambda([i,j],                 kron_delta(i,j));
+vpep_table[S, S]   : lambda([i,j],                 kron_delta(i,j));
+vpep_table[T, S]   : lambda([i,j],                 T(i)/Cs(i)*kron_delta(i,j));
+vpep_table[v, v]   : lambda([i,al, j, be],         kron_delta(i,j)*kron_delta(al,be));
+
+/* we substitute for the expressions we differentiate with dv */
+[dvdv, dsdv]: subst(vv=lambda([i,j,al], v(i,al) - v(j,al)), [dvdv, dsdv])$
+
+/*
+substitute "small" parameters, in other words going from [A, B, C] to
+[a, b, c]. Here we postulate how A, B, C depend on temperature (see
+sdpd-book.mac for the definitions, see eq. (60)
+ */
+[dvdv, dvds, dsdv, dsds]: subst(big_def, [dvdv, dvds, dsdv, dsds])$
+
+/*****************************************/
+/************** dvdv/dv ******************/
+/*****************************************/
+m_dvdv: vpep_const(kb*SU(vpep_diff(dvdv/(2*kb*dt)  ,   v(j,alp)), [j, 1, Np]));
+
+/*****************************************/
+/************** dvds/ds ******************/
+/*****************************************/
+m_dvds: kb*SU(vpep_diff(dvds, S(j))/(2*kb*dt), [j, 1, Np])$
+m_dvds: vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dvds))))$
+m_dvds: vpep_funall(factor, m_dvds)$
+m_dvds: vpep_expand(m_dvds)$
+m_dvds: vpep_combine(m_dvds)$
+m_dvds: vpep_splitsum(m_dvds)$
+m_dvds: vpep_funall(factor, m_dvds)$
+m_dvds: vpep_funall(vpep_expand, m_dvds)$
+m_dvds: vpep_combine(m_dvds)$
+m_dvds: scanmap(fullratsimp, m_dvds)$
+m_dvds: scanmap(factor, m_dvds)$
+m_dvds: vpep_outative(m_dvds)$
+m_dvds: fullratsimp(vpep_expand(vpep_outative(vpep_const(vpep_kron(vpep_expand(m_dvds))))))$
+m_dvds: vpep_combine(vpep_combine(vpep_canonical(m_dvds)))$
+m_dvds: vpep_funall(factor, m_dvds)$
+m_dvds: vpep_expand(m_dvds);
+
+/*
+I did not push the from too match the paper one but it is easy to see
+that they are the same (not I did not substitute d(i,j))
+*/
+m_dvds_ref: vpep_expand(subst(small_def, sum2sumel(dvds_diff)))$
+/* substitute dummy particle positions to make sure it agrees */
+getnum(m_dvds, i=1, small_def, A=[], B=[], C=[], T=[], Cs=[]);
+getnum(dvds_diff, i=1, small_def, A=[], B=[], C=[], T=[], Cs=[]);
+getnum(dvds_diff - m_dvds, i=1, small_def, A=[], B=[], C=[], T=[], Cs=[]);
+
+/*****************************************/
+/************** dsdv/ds ******************/
+/*****************************************/
+m_dsdv: kb*SU(vpep_diff(expand(dsdv/(2*kb*dt)), v(j,al)), [j, 1, Np], [al, 1, ndim])$
+m_dsdv: vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dsdv))))$
+m_dsdv: vpep_funall(factor, m_dsdv)$
+/* An expression ... */
+m_dsdv: vpep_expand(m_dsdv);
+/* Dummy particles comparison */
+getnum(m_dsdv, i=1, small_def, A=[], B=[], C=[], T=[], Cs=[]);
+getnum(dsdv_diff, i=1, small_def, A=[], B=[], C=[], T=[], Cs=[]);
+
+/*****************************************/
+/************** dsds/ds ******************/
+/*****************************************/
+m_dsds: kb*SU(vpep_diff(dsds/(2*kb*dt), S(j)), [j, 1, Np])$
+m_dsds: vpep_const(m_dsds);
+m_dsds: vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dsds))))$
+m_dsds: vpep_funall(factor, m_dsds)$
+m_dsds: vpep_outative(m_dsds);
+
+/* I got a mismatch between paper and my result */
+fullratsimp(getnum(m_dsds - dsds_diff, i=2, small_def, A=[], B=[], C=[], T=[], Cs=[]));
+fullratsimp(getnum(m_dsds - dsds_diff, i=1, small_def, A=[], B=[], C=[], T=[], Cs=[]));
+
+/*
+
+Let rearrange the terms to make it look the same way as in the paper I
+think a term is missing in the paper. I put a box around it. It comes
+from a last term in (B3) --- C(i,j)^2
+
+introduce some notation */
+m_dsds_sb: subst([SU(ee(i,k,bep)*vv(i,k,bep),[bep,1,ndim])^2=vte,
+                  SU(vv(i,k,alp)^2,[alp,1,ndim])=v2], m_dsds)$
+m_dsds_sb: scanmap(factor, m_dsds_sb);
+print(m_dsds_sb);
+
+/*
+this function is using the exact form of m_dsds_sb and will fail if
+you change something
+*/
+
+m_dsds_sb: arrange_dsds3(m_dsds_sb);

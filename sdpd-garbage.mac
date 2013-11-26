@@ -1,0 +1,92 @@
+/* merges two assoc list so the second overdo the first one, [] removs the default value
+(%i141) garbage_merge([a=1, b=2], [b=101]);
+(%o141)                        [a = 1, b = 101]
+(%i142) garbage_merge([a=1, b=2], [b=101, d=102]);
+(%o142)                    [a = 1, b = 101, d = 102]
+(%i247) garbage_merge([a=1, b=2], [b=[]]);
+(%o247)                             [a = 1]
+(%i837) garbage_merge([a=1, b=2], [[b=101, d=102]]);
+(%o837)                [b = 2, a = 1, b = 101, d = 102]
+*/
+garbage_merge(A, B):= block([
+  A: flatten(A), B: flatten(B),
+  aset: setify(map(lhs, A)),
+  bset: setify(map(lhs, B))],
+  newina: setdifference(aset, bset),
+  for k in newina do B: cons(k=assoc(k, A), B),
+  sublist(B, lambda([q], not emptyp(rhs(q)))));
+
+
+/* substitute a particles position, velocities and other parameters to
+get a numerical answers, by default I use two particles all
+coefficients are one but it can be overwritten by providing an empty
+list as an argument */
+%DEFULT_GETNUM_SUBST: [
+      ndim=3, Np=2, B=lambda([i,j], 1), A=lambda([i,j], 1), C=lambda([i,j], 1),
+      Cs=lambda([i], 1),
+      T=lambda([i], 1),
+      vv='vvnum, v='vnum, ee='eenum];
+getnum([expr]):= block([user_var],
+  user_var: if length(expr)>1 then rest(expr) else [],
+  expr: first(expr),
+  block([aux], local(r, rabs, eenum, vnum, vvnum),
+    sb_list: garbage_merge(%DEFULT_GETNUM_SUBST,
+      user_var),
+    /* dummy particle position, some wired combination of i and al */
+    r(i, al):= i^2+al^2,
+    rabs(i, j):=sqrt(sum((r(i, al) - r(j , al))^2, al, 1, ndim)),
+    eenum(i, j, al):= if equal(i, j) then 0 else (r(i, al)-r(j, al))/rabs(i, j),
+    /* dummy particle velocity, some wired combination of i and al */    
+    vnum(i,al):= 2*i-3*al+1,
+    vvnum(i, j, al):= vnum(i, al)-vnum(j,al),
+    aux: subst(
+      sb_list,
+      expr),
+    aux: sumel2sum(aux),
+    ev(aux, sum),
+    /* ndim can be inside */
+    aux: subst(sb_list, aux),
+    aux: ev(aux, sum),
+    fullratsimp(ev(aux, sb_list))
+    ));
+
+/* 0 and 1 for any number of arguments */
+alwayszero([l]):= 0;
+alwaysone([l]):= 1;
+
+
+arrange_dsds(x):=(
+  /* collect a(i,k) terms */  
+  x: substpart(factor(piece), x, [10, 11, 12]),
+  /* collect vte temrs */
+  x: substpart(factor(piece), x, [1, 2, 3, 4, 5, 6, 7, 8, 9]),
+  x: substpart(factor(piece), x, [4, 5]),
+  x: substpart(factor(piece), x, [1, 2]),
+  x: substpart(factor(piece), x, [2, 3]),
+  x: substpart(factor(piece), x, 1, 2, [1, 2, 3]),
+  x: substpart(factor(piece), x, 1, 2, 1, 1, [1, 3]),
+  x: substpart(split_scnterm(piece), x, 1, 1)
+);
+split_scnterm(expr):= if op(expr)="+" then block([e: inargs(expr)], box(e[1] + 1/2*e[2]) + box(1/2*e[2] + e[3])) else expr;
+
+arrange_dsds2(x):=(
+  x: substpart(arrange_dsds(piece), x, 1, 1, 1, 1, 1, 3),
+  x: substinpart(multthru(piece), x, 5, 2, 1, [4, 6]),
+  x: substinpart(multthru(piece), x, 5, 2, 1, 5, 2, [1, 2]),
+  rembox(x)
+);
+
+arrange_dsds3(x):=(
+  x: arrange_dsds2(x),
+  x: vpep_expand(multthru(x)),
+  x: substinpart(multthru(piece), x, 2, 1, [2, 4, 5, 6, 7, 8]),
+  x: substinpart(multthru(piece), x, 2, 1, 3, 2, [1, 2, 3, 4, 5]),
+  x: substinpart(multthru(piece), x, 2, 1, 3, 2, [2, 3]),
+  x: substinpart(factor(piece),   x, 2, 1, 3, 2, 1, 1),
+  x: substinpart(factor(piece),   x, 2, 1, 3, 2, 1, 1, 3),
+  x: vpep_outative(vpep_additive(vpep_outative(x))),
+  x: substinpart(multthru(piece), x, 2),
+  x: subst(d(i,k),  T(i)*(Cs(k)+Cs(i))*T(k)*kb/(Cs(i)*Cs(k)*(T(k)+T(i))^2), x),
+  x: dpart(sumel2sum(x), 3),
+  subst(j, k, x)
+);

@@ -1,0 +1,36 @@
+/*
+Run sdpd transformations as a test
+batch("rtest_sdpd.mac", 'test);
+*/
+
+(kill(all), 0);
+0$
+
+(load("sumalg.mac"), load("sdpd-assume.mac"), load("sdpd-rules.mac"), load("sdpd-book.mac"), 0);
+0$
+
+(HUGE(expr):= factor(vpep_const(vpep_kron(vpep_const(vpep_fullexpand(find_prod_l(vpep_fullexpand(expr), dwp_predicate)))))),
+  HUGE(tr(i,ip)*tr(j,jp)*dt));
+dt^2*(kron_delta(i,j)*kron_delta(ip,jp)+kron_delta(i,jp)*kron_delta(ip,j))
+    *ndim$
+
+HUGE(tr(i,ip)*wave(j,jp,al,alp));
+0$
+
+HUGE(wave(i,ip,al,alp)*wave(j,jp,be,bep));
+dt*(kron_delta(i,j)*kron_delta(ip,jp)+kron_delta(i,jp)*kron_delta(ip,j))
+  *(kron_delta(al,be)*kron_delta(alp,bep)*ndim
+   +kron_delta(al,bep)*kron_delta(alp,be)*ndim
+   -2*kron_delta(al,alp)*kron_delta(be,bep))
+ /(2*ndim)$
+
+(aux(i, j, al, be):= A(i,j)*wave(i, j, al, be) +
+  B(i,j)*kron_delta(al,be)/ndim*tr(i, j),
+  r: HUGE(aux(i, ip, al, alp) * aux(j, jp, be, bep)));
+dt*(kron_delta(i,j)*kron_delta(ip,jp)+kron_delta(i,jp)*kron_delta(ip,j))
+  *(kron_delta(al,be)*kron_delta(alp,bep)*A(i,ip)*A(j,jp)*ndim
+   +kron_delta(al,bep)*kron_delta(alp,be)*A(i,ip)*A(j,jp)*ndim
+   +2*kron_delta(al,alp)*kron_delta(be,bep)*B(i,ip)*B(j,jp)
+   -2*kron_delta(al,alp)*kron_delta(be,bep)*A(i,ip)*A(j,jp))
+ /(2*ndim)$
+

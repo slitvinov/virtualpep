@@ -1,0 +1,6 @@
+Derivation SDPD equations (by P. Espanol and M. Revenga).
+
+Main file is [[file:onerun.mac]]. See also examples in [[file:b1.mac]]
+
+[1] http://link.aps.org/doi/10.1103/PhysRevE.67.026705
+[2] https://sites.google.com/site/pepespanol

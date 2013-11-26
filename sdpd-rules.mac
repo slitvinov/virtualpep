@@ -1,0 +1,80 @@
+/* to get safe_op */
+/* if not get(sum_kron_delta, 'present) then load ("../dodier-sumpsimp/sum_kron_delta.mac"); */
+load("abs_integrate");
+
+simp: false;
+matchdeclare(pp, lambda([q], safe_op(q)='ee and ordergreatp(first(args(q)), second(args(q)))));
+matchdeclare(ss, lambda([q], safe_op(q)='vv and ordergreatp(first(args(q)), second(args(q)))));
+matchdeclare(ww, lambda([q], safe_op(q)='dW and ordergreatp(first(args(q)), second(args(q)))));
+matchdeclare([ii, jj, dimidx], true);
+matchdeclare(iisym, all);
+matchdeclare(jjsym, lambda([q], orderlessp(q, iisym)));
+tellsimp(ee(iisym,jjsym,dimidx), -ee(jjsym,iisym,dimidx));
+tellsimp(vv(iisym,jjsym,dimidx), -vv(jjsym,iisym,dimidx));
+tellsimp(ee(ii,ii,jj), 0);
+tellsimp(vv(ii,ii,jj), 0);
+
+matchdeclare([ii,jj], true);
+tellsimp(kron_delta(ii, jj)^2, kron_delta(ii, jj));
+simp: true;
+
+dwp_predicate(e):= not atom(e) and part(e,0)=dW;
+dvp_predicate(e):= not atom(e) and part(e,0)=dV;
+dwvp_predicate(e):= not atom(e) and (part(e,0)=dW or part(e,0)=dV);
+
+/* mnemonic Ito rules */
+matchdeclare([i, ip, al, alp, j, jp, be, bep], true);
+let(dW(i,ip,al,alp)*dW(j,jp,be,bep), 
+  (kron_delta(i,j)*kron_delta(ip,jp) +
+    kron_delta(i,jp)*kron_delta(ip,j))*kron_delta(al,be)*kron_delta(alp,bep)*dt);
+let(dV(i,ip)*dV(j,jp), 
+  (kron_delta(i,j)*kron_delta(ip,jp)-kron_delta(i,jp)*kron_delta(ip,j))*dt);
+let(dW(i,ip,al,alp)*dV(j,jp), 0);
+
+/* deals with ee^2
+(%i82) find_ee2( SU(ee(i,j,al)^2, [al, 1, ndim]));
+(%o82)                       1 - kron_delta(i, j)
+*/
+matchdeclare([ii, jj], true);
+matchdeclare(aa, vpep_freeof(al));
+defmatch(matchee2, aa*ee(ii, jj, al)^2, al);
+replacee2(i,j):=1 - kron_delta(i,j);
+find_ee2(expr):= opsubst(SU=lambda([[l]],
+    block([r: funmake(SU, l), summand, vlh],
+      summand: getsummand(r),
+      varlohi: getvarlohi(r),
+      for vlh in varlohi do if second(vlh)=1 and third(vlh)=ndim then
+      block([listofm: matchee2(summand, first(vlh))],
+        if listofm#false then (summand:  assoc('aa, listofm)*replacee2(assoc('ii, listofm), assoc('jj, listofm)),
+          varlohi: delete(vlh, varlohi))),
+      if emptyp(varlohi) then summand else funmake(SU, cons(summand, varlohi)))),
+  expr);
+
+find_prod_l(expr, predic):=block([fun: lambda([q], find_prod_l(q, predic))],
+  if safe_op(expr)="*" then
+  block([p : [], q : [], simp: true, prederror: true],
+    for xk in inargs(expr) do
+      if predic(xk) then q : cons(xk,q) else p : cons(xk,p),
+    p : xreduce("*",p),
+    q : xreduce("*",q),
+    p * letsimp(q))
+  else if safe_op(expr)="+" then map('fun, expr)
+  else if safe_op(expr)='SU then vpep_fun('fun, expr)
+  else expr);
+
+find_ee2_brutal_aux(expr):=vpep_const(vpep_kroninprod(vpep_additive(vpep_funall(expand, find_ee2(expr)))));
+declare(find_ee2_brutal_aux, evfun);
+find_ee2_brutal(expr):=ev(expr, find_ee2_brutal_aux, infeval);
+
+ALLINONE(q):=(
+q: vpep_fullexpand(q),
+q: find_prod_l(q, dwp_predicate),
+q: find_prod_l(q, dwvp_predicate),
+q: find_prod_l(q, dvp_predicate),
+q: vpep_fullexpand(q),
+q: vpep_kroninprod(vpep_kron(q)),
+q: vpep_const(q),
+q: find_ee2(q),
+q: vpep_fullexpand(q),
+q: vpep_kroninprod(vpep_kron(q)),
+q)$

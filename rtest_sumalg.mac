@@ -1,0 +1,341 @@
+/*
+batch("rtest_sumalg.mac", 'test);
+*/
+
+(kill(all), 0);
+0$
+
+(load("sumalg.mac"), 0);
+0$
+
+block([A], A: SU(x, [i, 1, 10]), getvars(A));
+[i]$
+
+block([A], A: SU(x, [i, 1, 10], [j, 1, 10]), getvars(A));
+[i, j]$
+
+block([A: SU(x[i], [i, 2, 12], [j, 3, 13]),
+  B: SU(y[i], [i, 5, 15], [j, 4, 14])],
+  grind(multsum(A, B)),
+  0);
+0$
+
+block([A: SU(x*i*k, [i, 2, 12], [k, 3, 13]),
+  B: SU(y*i*j, [i, 1, 10], [j, 1, 10])],
+  grind(multsum(A, B)),
+  0);
+0$
+
+block([A: SU(x, [i, 1, 1], [k, 1, 101]),
+  B: SU(y, [i, 1, 1001], [j, 1, 10001])],
+  grind(multsum(A, B)),
+  0);
+0$
+
+vpep_additive(SU(x+y,[i, 1, 10]));
+SU(y,[i,1,10])+SU(x,[i,1,10])$
+
+block([A: SU(x, [i, 1, 1], [k, 1, 101])],
+  multscal(y, A));
+SU(x*y, [i, 1, 1], [k, 1, 101])$
+
+block([r: vpep_nestsum([SU(x[i], [i, 1, 10]), [i, 1, 20]])],
+  grind(r),
+  0);
+0$
+
+vpep_const(SU(a[j], [i, 1, n], [j, 1, n]));
+SU(a[j]*n,[j,1,n])$
+
+vpep_const(SU(a[j], [i, 1, n], [j, 1, n]) + SU(a[j], [i, 1, n]));
+SU(a[j]*n,[j,1,n])+a[j]*n$
+
+vpep_fun('sin, SU(x[i], [i, 1, 10]));
+SU(sin(x[i]),[i,1,10])$
+
+vpep_fun('sin, SU(x[i], [i, 1, 10], [j, 2, 3]));
+SU(sin(x[i]),[i,1,10], [j, 2, 3])$
+
+block([e: a*SU(SU(x[i]+y[i],[i,1,10]),[j,3,9])],
+  vpep_fullexpand(e));
+SU(a*y[i],[j,3,9],[i,1,10])+SU(a*x[i],[j,3,9],[i,1,10])$
+
+sumel2sum(SU(x[i,j], [i, 1, FIRST], [j, 1, SECOND]));
+'sum('sum(x[i,j],i,1,FIRST),j,1,SECOND)$
+
+sumel2sum(SU(x[i,j], [i, 1, FIRST], [j, 1, SECOND], [k, 1, THIRD]));
+'sum('sum('sum(x[i,j],i,1,FIRST),j,1,SECOND),k,1,THIRD)$
+
+sum2sumel(sum(s[i], i, 1, Np));
+SU(s[i],[i,1,Np])$
+
+sum2sumel(sum(sum(p[i,j], i, 1, Np), j, 1, Np));
+SU(SU(p[i,j],[i,1,Np]),[j,1,Np])$
+
+vpep_expand(SU(q*SU(z[i],[i,1,n])*p,[k,1,n]));
+SU(z[i]*p*q,[k,1,n],[i,1,n])$
+
+vpep_expand(SU(SU(SU(z[i], [m, 1, n]),[i,1,n]),[k,1,n]));
+SU(z[i],[k,1,n],[i,1,n],[m,1,n])$
+
+vpep_kron(SU(a[i]*kron_delta(i,j), [i, 1, n]));
+a[j]$
+
+vpep_kron(SU(a[k]*kron_delta(i,j), [i, 1, n]));
+a[k]$
+
+vpep_kron(SU(a[k]*kron_delta(k,m), [i, 1, n]));
+SU(a[k]*kron_delta(k,m),[i,1,n])$
+
+vpep_kron(SU(a[p]*a[k]*kron_delta(k,m)*kron_delta(s,p), [k, 1, n], [s, 1, n]));
+a[m]*a[p]$
+
+vpep_kron(SU(kron_delta(q,s)*kron_delta(ip,jp)*B(jp),[s,1,ndim],[q,1,ndim]));
+SU(B(jp)*kron_delta(ip,jp),[s,1,ndim])$
+
+vpep_canonical(SU(s[i,j], [j, 1, SECOND], [i, 1, FIRST]) );
+SU(s[p1,p2],[p1,1,FIRST],[p2,1,SECOND])$
+
+vpep_canonical(SU(s[j,i], [j, 1, n], [i, 1, p]) );
+SU(s[p1,p2],[p1,1,n],[p2,1,p])$
+
+vpep_canonical(SU(s[j,i], [j, 1, A], [i, 1, B]));
+SU(s[p1,p2],[p1,1,A],[p2,1,B])$
+
+vpep_canonical(SU(s[j,i], [j, 1, FIRST], [i, 1, SECOND]));
+SU(s[p1,p2],[p1,1,FIRST],[p2,1,SECOND])$
+
+vpep_canonical( SU(a, [i, 1, Np], [j, 1, ndim], [k, 1, Np]) );
+SU(a,[p1,1,ndim],[p2,1,Np],[p3,1,Np])$
+
+vpep_canonical(SU(a[i]*b[j], [j, 1, N], [i, 1, N])) -
+  vpep_canonical(SU(a[j]*b[i], [j, 1, N], [i, 1, N]));
+0$
+
+vpep_canonical(SU(a(i,k)*b(j,k), [j, 1, N], [i, 1, N])) -
+  vpep_canonical(SU(a(j,k)*b(i,k), [j, 1, N], [i, 1, N]));
+0$
+
+/* a case from SDPD */
+block([w: SU((vv(i, p1, p2n2)*ee(i, p1, p1n2)*ee(p1, j, p1n2)
+             ), [p1, 1, Np], [p1n2, 1, ndim], [p2n2, 1, ndim])],
+         vpep_canonical(w));
+SU(ee(i,p3,p1)*vv(i,p3,p2)*ee(p3,j,p1),[p1,1,ndim],[p2,1,ndim],[p3,1,Np])$
+
+
+listofvarsandsub(a*s[i]);
+[a,s[i],i]$
+
+listofvarsandsub(a*s[P[i],j]);
+[a,s[P[i],j],P[i],i,j]$
+
+listofvarsandsub(SU(s, [i, 1, n]));
+[s,n]$
+
+listofvarsandsub(SU(s[k], [i, 1, n]));
+[s[k],k,n]$
+
+listofvarsandsub(SU(s[k,i], [i, 1, n]));
+[s[k,i__],k,n]$
+
+listofvarsandsub(sum(s[i,j], i, 1, n));
+[s[i,j],i,j,i,n]$
+
+vpep_canonical( SU(a[i]*b[j], [j, 1, n], [i, 1, n]));
+SU(a[p1]*b[p2],[p1,1,n],[p2,1,n])$
+
+vpep_canonical( SU(a[k]*b[j], [j, 1, n], [k, 1, n]));
+SU(a[p1]*b[p2],[p1,1,n],[p2,1,n])$
+
+vpep_outative( SU(a[i], [i, 1, n]));
+SU(a[i],[i,1,n])$
+
+vpep_outative( SU(b*a[i], [i, 1, n]));
+b*SU(a[i],[i,1,n])$
+
+vpep_outative( SU(b*a[i,j]*c, [i, 1, n], [j, 1, n]));
+b*c*SU(a[i,j],[i,1,n],[j,1,n])$
+
+vpep_outative( SU(b[k]*SU(b*a[i,j]*c, [i, 1, n], [j, 1, n]), [k, 1, m]));
+b*c*SU(a[i,j],[i,1,n],[j,1,n])*SU(b[k],[k,1,m])$
+
+vpep_outative( SU(b*a[i], [i, 1, n]) + SU(c*b[j], [j, 1, n]));
+c*SU(b[j],[j,1,n])+b*SU(a[i],[i,1,n])$
+
+vpep_double2nested(SU(a,[i,1,im],[j,1,jm]));
+SU(SU(a,[i,1,im]),[j,1,jm])$
+
+vpep_outative(SU(SU(B[i,p1]^2*ss(i,p1,p2)^2,[p2,1,ndim]),[p1,1,Np]));
+SU(B[i,p1]^2*SU(ss(i,p1,p2)^2,[p2,1,ndim]),[p1,1,Np])$
+
+block([w: SU( SU(ee(p6,p4),[p4,1,ndim])*SU(ee(p6,p5),[p5,1,ndim]),[p6,1,Np])],
+  vpep_outative(w));
+SU(SU(ee(p6,p4),[p4,1,ndim])*SU(ee(p6,p5),[p5,1,ndim]),[p6,1,Np])$
+
+symmetric_operatorp(x);
+false$
+
+symmetric_operatorp(1);
+false$
+
+block([r],
+  declare(S, symmetric),
+  r: symmetric_operatorp(S(i,j)),
+  kill(S),
+  r);
+[i,j]$
+
+block([r],
+  declare(S, symmetric),
+  r: symmetric_operatorp(S[i,j]),
+  kill(S),
+  r);
+[i,j]$
+
+block([r],
+  declare(S, symmetric),
+  r: symmetric_operatorp(S[i,j]^2),
+  kill(S),
+  r);
+[i,j]$
+
+
+block([r],
+  declare(A, antisymmetric),
+  r: antisymmetric_operatorp(A[i,j]),
+  kill(A),
+  r);
+[i,j]$
+
+block([r],
+  declare(A, antisymmetric),
+  r: antisymmetric_operatorp(A[i,j]^2),
+  kill(A),
+  r);
+false$
+
+block([r],
+  declare(A, antisymmetric),
+  r: antisymmetric_operatorp(A[i,j]^3),
+  kill(A),
+  r);
+[i,j]$
+
+block([r],
+  declare(A, antisymmetric),
+  r: symmetric_operatorp(A[i,j]^2),
+  kill(A),
+  r);
+[i,j]$
+
+block([r],
+  declare(A, antisymmetric),
+  declare(S, symmetric),
+  r: vpep_symantisym(SU(A[i,j]*S[i,j]^2, [i, 1, ndim], [j, 1, ndim])),
+  kill(A, S),
+  r);
+0$
+
+block([r],
+  declare([A, A2], antisymmetric),
+  r: vpep_symantisym(SU(A[i,j]*A2[i,j]^2, [i, 1, ndim], [j, 1, ndim])),
+  kill(A, A2),
+  r);
+0$
+
+block([r],
+  declare(A, symmetric),
+  declare(S, antisymmetric),
+  r: vpep_symantisym(SU(S[i,j]*A[i,j]*q[i], [i, 1, ndim], [j, 1, ndim])),
+  kill(A, S),
+  r);
+SU(q[i]*A[i,j]*S[i,j],[i,1,ndim],[j,1,ndim])$
+
+block([r],
+  declare(A, symmetric),
+  declare(S, antisymmetric),
+  r: vpep_symantisym(SU(SU(S[i,j]*A[i,j], [i, 1, ndim], [j, 1, ndim])*q[j], [k, 1, ndim], [m, 1, ndim])),
+  kill(A, S),
+  r);
+SU(0,[k,1,ndim],[m,1,ndim])$
+
+vpep_hideindexes(SU(a[i], [i, 1, n]));
+SU(a[i__],[i__,1,n])$
+
+vpep_showindexes(SU(a[i__],[i__,1,n]));
+SU(a[i], [i, 1, n]);
+
+vpep_hideindexes(SU(a[k]*SU(b[k], [k, 1, FIRST]), [m, 1, SECOND]));
+SU(a[k]*SU(b[k__],[k__,1,FIRST]),[m__,1,SECOND])$
+
+vpep_showindexes(SU(a[k]*SU(b[k__],[k__,1,FIRST]),[m__,1,SECOND]));
+SU(a[k]*SU(b[k], [k, 1, FIRST]), [m, 1, SECOND])$
+
+vpep_subst(i=j, SU(a(i), [i, 1, n]));
+SU(a(i), [i, 1, n])$
+
+vpep_subst([i=j, k=10], SU(a(i,k), [i, 1, n]));
+SU(a(i,10),[i,1,n])$
+
+vpep_subst(i=n, SU(b(i), [i, 1, n])*a(i));
+SU(b(i),[i,1,n])*a(n)$
+
+vpep_substindex_sumel(i=n, SU(a(i), [i, 1, n]));
+SU(a(n),[n,1,n])$
+
+vpep_substindex_sumel(x=y, SU(a(i)*x, [i, 1, n]));
+SU(a(i)*y,[i,1,n])$
+
+vpep_substindex_sumel(n=m, SU(a(i)*x, [i, 1, n]));
+SU(a(i)*x,[i,1,m])$
+
+vpep_deleteindex( SU(a, [i, 1, n], [j, 1, m]), i);
+SU(a,[j,1,m])$
+
+vpep_deleteindex( SU(a, [j, 1, m]), j);
+a$
+
+vpep_combine ( SU(a, [i, 1, n]) + SU(b, [i, 1, n], [al, 1, ndim]) );
+'SU(SU(b,[al,1,ndim])+a,[i,1,n])$
+
+vpep_combine ( SU(a, [i, 1, n]) + SU(b, [i, 1, n]) );
+'SU(b+a,[i,1,n])$
+
+vpep_combine ( SU(a, [i, 1, n]) + SU(b, [j, 1, n]) );
+SU(b,[j,1,n])+SU(a,[i,1,n])$
+
+vpep_combine ( SU(a, [i, 1, n]) + SU(b, [i, 1, n], [j, 1, n]));
+'SU(SU(b,[j,1,n])+a,[i,1,n])$
+
+vpep_splitsum(SU(a[i,j]*b[k], [i, 1, n], [j, 1, n], [k, 1, n]));
+SU(SU(SU(a[i,j],[i,1,n]),[j,1,n])*b[k],[k,1,n])$
+
+vpep_splitsum(SU(a[i,j]*b[i], [i, 1, n], [j, 1, n], [k, 1, n]));
+SU(SU(1,[k,1,n])*b[i]*SU(a[i,j],[j,1,n]),[i,1,n])$
+
+vpep_splitsum(SU(a[i,j]*b[j], [i, 1, n], [j, 1, n], [k, 1, n]));
+SU(SU(1,[k,1,n])*SU(a[i,j],[i,1,n])*b[j],[j,1,n])$
+
+vpep_splitsum(SU(a[i,j]*b[j,k], [i, 1, n], [j, 1, n], [k, 1, n]));
+SU(SU(a[i,j],[i,1,n])*SU(b[j,k],[k,1,n]),[j,1,n])$
+
+vpep_splitsum(SU(a[i,j]*b[j,k]*c[i,k], [i, 1, n], [j, 1, n], [k, 1, n]));
+SU(SU(a[i,j]*c[i,k],[i,1,n])*b[j,k],[j,1,n],[k,1,n])$
+
+vpep_splitsum(SU(a[i,j,k], [i, 1, n], [j, 1, n], [k, 1, n]));
+SU(a[i,j,k],[i,1,n],[j,1,n],[k,1,n])$
+
+vpep_kronilike(kron_delta(i,j)*a[i,j], i);
+a[i,i]*kron_delta(i,j)$
+
+vpep_kronilike(kron_delta(i,j)*a[i,j], j);
+a[j,j]*kron_delta(i,j)$
+
+vpep_kronilike(kron_delta(i,j)*a[i,j], [i,j]);
+a[j,j]*kron_delta(i,j)$
+
+vpep_kronilike(kron_delta(i,j)*a[i,j], k);
+a[i,j]*kron_delta(i,j)$
+
+vpep_kronilike(kron_delta(i,j)*a[i,j] + kron_delta(n,m)*a[m,i], [i, m]);
+a[m,i]*kron_delta(m,n)+a[i,i]*kron_delta(i,j)$
