@@ -1,6 +1,68 @@
+* Intorduction
 Derivation SDPD equations (by P. Espanol and M. Revenga).
 
 Main file is [[file:onerun.mac]]. See also examples in [[file:b1.mac]]
 
 [1] http://link.aps.org/doi/10.1103/PhysRevE.67.026705
 [2] https://sites.google.com/site/pepespanol
+
+* Installation
+* Testing
+Run the following commands from the directory with the package
+#+BEGIN_SRC sh
+maxima -r "batch(\"rtest_sumalg.mac\", 'test);"
+#+END_SRC
+
+#+BEGIN_SRC sh
+maxima -r "batch(\"rtest_sdpd.mac\", 'test);"
+#+END_SRC
+
+If tests fail send me the corresponding *.ERR file which must be in
+the same directory.
+
+Run [[file:onerun.mac]] in batch mode and keep log file
+#+BEGIN_SRC sh
+maxima -b onerun.mac | tee local.log
+#+END_SRC
+Compare it with the reference logs in `log' directory. I do not expect
+an exact match but zeros should be in places like 
+#+BEGIN_EXAMPLE
+                    2
+                   m  dvdv
+(%i16) fullratsimp(-------
+                     dt
+                        - vpep_outative(vpep_fullexpand(sum2sumel(dvdv_book))))
+(%o16)                                 0
+#+END_EXAMPLE
+
+
+If last lines are the following it is probably OK.
+#+BEGIN_EXAMPLE
+(%i83)               m_dsds_sb : arrange_dsds3(m_dsds_sb)
+           Np
+          ====
+          \            T(j) kb
+(%o83) - ( >    (------------------- + d(i, j))
+          /      Cs(i) (T(j) + T(i))
+          ====
+          j = 1
+                                                                 """"""""""""
+  (a(i, j) (ndim - 2) + 3 b(i, j)) vte                           "c(i, i) kb"
+ (------------------------------------ + a(i, j) v2))/(2 T(i)) + "----------"
+                  ndim                                           "  Cs(i)   "
+                                                                 """"""""""""
+     Np
+    ====
+    \
+   ( >    c(i, j) T(j)) kb
+    /
+    ====
+    j = 1
+ - -----------------------
+         Cs(i) T(i)
+#+END_EXAMPLE
+
+* Usage
+Run step by step commands in [[file:b1.mac]] it is computing preliminary
+results (B1) and (B2) from appendix. Then run step by step
+file:onerun.mac.
