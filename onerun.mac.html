@@ -1,0 +1,286 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!-- Created by htmlize-1.43 in css mode. -->
+<html>
+  <head>
+    <title>onerun.mac</title>
+    <style type="text/css">
+    <!--
+      body {
+        color: #000000;
+        background-color: #ffffff;
+      }
+      .builtin {
+        /* font-lock-builtin-face */
+        color: #483d8b;
+      }
+      .comment {
+        /* font-lock-comment-face */
+        color: #b22222;
+      }
+      .comment-delimiter {
+        /* font-lock-comment-delimiter-face */
+        color: #b22222;
+      }
+      .constant {
+        /* font-lock-constant-face */
+        color: #008b8b;
+      }
+      .function-name {
+        /* font-lock-function-name-face */
+        color: #0000ff;
+      }
+      .keyword {
+        /* font-lock-keyword-face */
+        color: #a020f0;
+      }
+      .string {
+        /* font-lock-string-face */
+        color: #8b2252;
+      }
+      .variable-name {
+        /* font-lock-variable-name-face */
+        color: #a0522d;
+      }
+
+      a {
+        color: inherit;
+        background-color: inherit;
+        font: inherit;
+        text-decoration: inherit;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+    -->
+    </style>
+  </head>
+  <body>
+    <pre>
+<span class="builtin">kill</span>(<span class="keyword">all</span>)$
+<span class="builtin">reset</span>()$
+<span class="builtin">load</span>(<span class="string">"sumalg.mac"</span>)$
+<span class="builtin">load</span>(<span class="string">"sdpd-assume.mac"</span>)$
+<span class="builtin">load</span>(<span class="string">"sdpd-rules.mac"</span>)$
+<span class="builtin">load</span>(<span class="string">"sdpd-book.mac"</span>)$
+<span class="builtin">load</span>(<span class="string">"sdpd-garbage.mac"</span>)$
+
+<span class="comment-delimiter">/* </span><span class="comment">define indexes to substitute for vpep_canonical
+lo, hi, nest level,  number
+to make sums look better
+</span><span class="comment-delimiter">*/</span>
+vpep_userindex[<span class="constant">1</span>, ndim, <span class="constant">0</span>, <span class="constant">1</span>]<span class="keyword">:</span> alp$
+vpep_userindex[<span class="constant">1</span>, ndim, <span class="constant">1</span>, <span class="constant">1</span>]<span class="keyword">:</span> bep$
+vpep_userindex[<span class="constant">1</span>, Np,   <span class="constant">0</span>, <span class="constant">1</span>]<span class="keyword">:</span> k$
+vpep_userindex[<span class="constant">1</span>, Np,   <span class="constant">0</span>, <span class="constant">2</span>]<span class="keyword">:</span> ip$
+
+<span class="comment-delimiter">/*</span><span class="comment">
+SU is a "sum element" an object I use to represent sums. It looks like this
+SU(summand, [i, ilow, ihi], ... , [j, jlow, jhi])
+
+Operations for SU are defined in sumalg.mac. For example multiplication
+(%i84) vpep_expand( SU(a(i), [i, 1, n])*SU(b(i), [i, 1, m]));
+(%o84)         SU(a(g2031192) b(i), [i, 1, m], [g2031192, 1, n])
+Note the index changed.
+
+vpep_canonical changes the index
+(%i85) vpep_canonical(vpep_expand( SU(a(i), [i, 1, n])*SU(b(i), [i, 1, m])));
+(%o85)              SU(b(p1) a(p2), [p1, 1, m], [p2, 1, n])
+
+vpep_outative plugs a constant out of the SU
+(%i88) vpep_outative( SU(b*a(i), [i, 1, n]) );
+(%o88)                       b SU(a(i), [i, 1, n])
+
+vpep_kroninsum simplifies with kron_delta
+(%i91) vpep_kron( SU(kron_delta(i,j)*a(i), [i, 1, n]) );
+(%o91)                               a(j)
+
+vpep_const simplifies case with no dependencies on a index
+(%i93) vpep_const( SU(a(i), [i, 1, n], [j, 1, m]) );
+(%o93)                       SU(a(i) m, [i, 1, n])
+
+you can go back and forward between SU and maxima sum
+(%i90) sumel2sum( SU(a(i,j), [i, 1, n], [j, 1, m]) );
+                               m     n
+                              ====  ====
+                              \     \
+(%o90)                         &gt;     &gt;    a(i, j)
+                              /     /
+                              ====  ====
+                              j = 1 i = 1
+(%i94) sum2sumel('sum('sum(a(i,j),i,1,n),j,1,m));
+(%o94)               SU(SU(a(i, j), [i, 1, n]), [j, 1, m])
+                              
+
+...and so on... See also rtest_sumalg.mac for more examples
+
+
+the form on the thermal noise (see eq. (49))
+i,j,k,ip,jp are particle indexes, Np is a number of particles
+al, be, alp, bep are coordinate indexes (X, [Y], [Z]), ndim is a number of dimensions (1, 2, 3),
+define an auxiliary object to simplify notation
+</span><span class="comment-delimiter">*/</span>
+<span class="function-name">aux</span>(<span class="variable-name">i, j, al, be</span>)<span class="keyword">:=</span> A(i,j)<span class="keyword">*</span>wave(i, j, al, be) <span class="keyword">+</span>
+                        B(i,j)<span class="keyword">*</span>kron_delta(al,be)<span class="keyword">/</span>ndim<span class="keyword">*</span>tr(i, j)$
+<span class="function-name">dvwave</span>(<span class="variable-name">i, al</span>)<span class="keyword">:=</span>SU(aux(i, ip, al, alp)<span class="keyword">*</span>ee(i, ip, alp),
+  [ip, <span class="constant">1</span>, Np], [alp, <span class="constant">1</span>, ndim]) <span class="keyword">/</span> m$
+<span class="function-name">dswave</span>(<span class="variable-name">i</span>)<span class="keyword">:=</span> (
+  <span class="keyword">-</span><span class="constant">1</span><span class="keyword">/</span><span class="constant">2</span><span class="keyword">*</span> SU( SU(aux(i, ip, alp, bep)<span class="keyword">*</span>ee(i,ip,alp)<span class="keyword">*</span>vv(i,ip,bep), [alp, <span class="constant">1</span>, ndim], [bep, <span class="constant">1</span>, ndim]),
+    [ip, <span class="constant">1</span>, Np]) <span class="keyword">+</span> SU(C(i,ip)<span class="keyword">*</span>dV(i,ip), [ip, <span class="constant">1</span>, Np])
+  ) <span class="keyword">/</span> T(i)$
+
+<span class="comment-delimiter">/*</span><span class="comment">
+
+calculate RHS in (B3): opening up all sums and use Ito rules, summation
+with kron_delta, normalization for eij  etc (see sdpd-rules.mac and sdpd-assume.mac),
+compare with "book" values I typed in from the paper (see sdpd-book.mac)
+ALLINONE is a chain of SU transformations defined in sdpd-rules.mac
+
+I did not fit the from of the equations to match exactly the one in
+the paper. Instead I transform the "book" value.
+
+</span><span class="comment-delimiter">*/</span>
+dvdv<span class="keyword">:</span> dvwave(i, al) <span class="keyword">*</span> dvwave(j, be)$
+<span class="comment-delimiter">/* </span><span class="comment">I got this one ... </span><span class="comment-delimiter">*/</span>
+dvdv<span class="keyword">:</span> vpep_canonical(vpep_outative(ALLINONE(dvdv)));
+<span class="comment-delimiter">/* </span><span class="comment">the difference with the book value should be zero </span><span class="comment-delimiter">*/</span>
+<span class="builtin">fullratsimp</span>(m<span class="keyword">^</span><span class="constant">2</span><span class="keyword">*</span>dvdv<span class="keyword">/</span>dt <span class="keyword">-</span> vpep_outative(vpep_fullexpand(sum2sumel(dvdv_book))));
+
+dvds<span class="keyword">:</span> dvwave(i, al) <span class="keyword">*</span> dswave(j)$
+dvds<span class="keyword">:</span> vpep_canonical(vpep_outative(ALLINONE(dvds)))$
+<span class="comment-delimiter">/* </span><span class="comment">Products kron_delta(i,j)*x(i) and kron_delta(i,j)*x(j) are equal
+For comparison I will choose the same index as the paper did.
+</span><span class="comment-delimiter">*/</span>
+dvds_maxima<span class="keyword">:</span> vpep_kronilike(<span class="builtin">expand</span>(m<span class="keyword">*</span>T(j)<span class="keyword">*</span>dvds<span class="keyword">/</span>dt), i)$
+dvds_ref<span class="keyword">:</span> vpep_canonical(vpep_outative(vpep_fullexpand(sum2sumel(dvds_book))));
+<span class="builtin">fullratsimp</span>(dvds_maxima <span class="keyword">-</span> dvds_ref);
+
+dsdv<span class="keyword">:</span> dswave(i) <span class="keyword">*</span> dvwave(j, al)$
+dsdv<span class="keyword">:</span> vpep_canonical(vpep_outative(vpep_outative(ALLINONE(dsdv))))$
+dsdv_ref<span class="keyword">:</span> vpep_canonical(vpep_outative(vpep_fullexpand(sum2sumel(dsdv_book))))$
+<span class="builtin">fullratsimp</span>(m<span class="keyword">*</span>T(i)<span class="keyword">*</span>dsdv<span class="keyword">/</span>dt <span class="keyword">-</span> dsdv_ref);
+
+dsds<span class="keyword">:</span>     dswave(i) <span class="keyword">*</span> dswave(j)$
+dsds_ref<span class="keyword">:</span> vpep_canonical((vpep_outative(vpep_fullexpand(sum2sumel(dsds_book)))))$
+<span class="comment-delimiter">/* </span><span class="comment">this took me more transformations </span><span class="comment-delimiter">*/</span>
+dsds<span class="keyword">:</span> vpep_outative(ALLINONE(dsds))$
+dsds<span class="keyword">:</span> vpep_splitsum(dsds)$
+dsds<span class="keyword">:</span> vpep_outative(dsds)$
+dsds<span class="keyword">:</span> vpep_canonical(dsds)$
+dsds<span class="keyword">:</span> find_ee2(dsds)$
+dsds<span class="keyword">:</span> vpep_fullexpand(dsds)$
+dsds<span class="keyword">:</span> vpep_outative(dsds)$
+dsds<span class="keyword">:</span> vpep_kroninprod(dsds)$
+dsds<span class="keyword">:</span> vpep_const(dsds)$
+dsds<span class="keyword">:</span> vpep_canonical(dsds)$
+dsds_maxima<span class="keyword">:</span> vpep_kronilike(<span class="builtin">expand</span>(T(i)<span class="keyword">*</span>T(j)<span class="keyword">*</span>dsds<span class="keyword">/</span>dt), i);
+<span class="builtin">fullratsimp</span>(dsds_maxima <span class="keyword">-</span> dsds_ref);
+
+<span class="comment-delimiter">/* </span><span class="comment">now to derivatives ...
+
+I will define "elemental" derivatives like
+dT[i]/dT[j], dv[i,al]/dv[j,be] and so on
+
+indexes in lambda are formed like this
+diff(T(i)/T(j)) gives [i, j]
+diff(v(i, al)/v(j, be)) gives [i, al, j, be]
+
+If a derivative is not given it is zero (see fn_vpep_diff in
+sumalg.mac)
+
+</span><span class="comment-delimiter">*/</span>
+vpep_table[T, T]   <span class="keyword">:</span> <span class="builtin">lambda</span>([i,j],                 kron_delta(i,j));
+vpep_table[S, S]   <span class="keyword">:</span> <span class="builtin">lambda</span>([i,j],                 kron_delta(i,j));
+vpep_table[T, S]   <span class="keyword">:</span> <span class="builtin">lambda</span>([i,j],                 T(i)<span class="keyword">/</span>Cs(i)<span class="keyword">*</span>kron_delta(i,j));
+vpep_table[v, v]   <span class="keyword">:</span> <span class="builtin">lambda</span>([i,al, j, be],         kron_delta(i,j)<span class="keyword">*</span>kron_delta(al,be));
+
+<span class="comment-delimiter">/* </span><span class="comment">we substitute for the expressions we differentiate with dv </span><span class="comment-delimiter">*/</span>
+[dvdv, dsdv]<span class="keyword">:</span> <span class="builtin">subst</span>(vv<span class="keyword">=</span><span class="builtin">lambda</span>([i,j,al], v(i,al) <span class="keyword">-</span> v(j,al)), [dvdv, dsdv])$
+
+<span class="comment-delimiter">/*</span><span class="comment">
+substitute "small" parameters, in other words going from [A, B, C] to
+[a, b, c]. Here we postulate how A, B, C depend on temperature (see
+sdpd-book.mac for the definitions, see eq. (60)
+ </span><span class="comment-delimiter">*/</span>
+[dvdv, dvds, dsdv, dsds]<span class="keyword">:</span> <span class="builtin">subst</span>(big_def, [dvdv, dvds, dsdv, dsds])$
+
+<span class="comment-delimiter">/*****************************************/</span>
+<span class="comment-delimiter">/************** </span><span class="comment">dvdv/dv *****************</span><span class="comment-delimiter">*/</span>
+<span class="comment-delimiter">/*****************************************/</span>
+m_dvdv<span class="keyword">:</span> vpep_const(kb<span class="keyword">*</span>SU(vpep_diff(dvdv<span class="keyword">/</span>(<span class="constant">2</span><span class="keyword">*</span>kb<span class="keyword">*</span>dt)  ,   v(j,alp)), [j, <span class="constant">1</span>, Np]));
+
+<span class="comment-delimiter">/*****************************************/</span>
+<span class="comment-delimiter">/************** </span><span class="comment">dvds/ds *****************</span><span class="comment-delimiter">*/</span>
+<span class="comment-delimiter">/*****************************************/</span>
+m_dvds<span class="keyword">:</span> kb<span class="keyword">*</span>SU(vpep_diff(dvds, S(j))<span class="keyword">/</span>(<span class="constant">2</span><span class="keyword">*</span>kb<span class="keyword">*</span>dt), [j, <span class="constant">1</span>, Np])$
+m_dvds<span class="keyword">:</span> vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dvds))))$
+m_dvds<span class="keyword">:</span> vpep_funall(<span class="builtin">factor</span>, m_dvds)$
+m_dvds<span class="keyword">:</span> vpep_expand(m_dvds)$
+m_dvds<span class="keyword">:</span> vpep_combine(m_dvds)$
+m_dvds<span class="keyword">:</span> vpep_splitsum(m_dvds)$
+m_dvds<span class="keyword">:</span> vpep_funall(<span class="builtin">factor</span>, m_dvds)$
+m_dvds<span class="keyword">:</span> vpep_funall(vpep_expand, m_dvds)$
+m_dvds<span class="keyword">:</span> vpep_combine(m_dvds)$
+m_dvds<span class="keyword">:</span> <span class="builtin">scanmap</span>(<span class="builtin">fullratsimp</span>, m_dvds)$
+m_dvds<span class="keyword">:</span> <span class="builtin">scanmap</span>(<span class="builtin">factor</span>, m_dvds)$
+m_dvds<span class="keyword">:</span> vpep_outative(m_dvds)$
+m_dvds<span class="keyword">:</span> <span class="builtin">fullratsimp</span>(vpep_expand(vpep_outative(vpep_const(vpep_kron(vpep_expand(m_dvds))))))$
+m_dvds<span class="keyword">:</span> vpep_combine(vpep_combine(vpep_canonical(m_dvds)))$
+m_dvds<span class="keyword">:</span> vpep_funall(<span class="builtin">factor</span>, m_dvds)$
+m_dvds<span class="keyword">:</span> vpep_expand(m_dvds);
+
+<span class="comment-delimiter">/*</span><span class="comment">
+I did not push the from too match the paper one but it is easy to see
+that they are the same (not I did not substitute d(i,j))
+</span><span class="comment-delimiter">*/</span>
+m_dvds_ref<span class="keyword">:</span> vpep_expand(<span class="builtin">subst</span>(small_def, sum2sumel(dvds_diff)))$
+<span class="comment-delimiter">/* </span><span class="comment">substitute dummy particle positions to make sure it agrees </span><span class="comment-delimiter">*/</span>
+getnum(m_dvds, i<span class="keyword">=</span><span class="constant">1</span>, small_def, A<span class="keyword">=</span>[], B<span class="keyword">=</span>[], C<span class="keyword">=</span>[], T<span class="keyword">=</span>[], Cs<span class="keyword">=</span>[]);
+getnum(dvds_diff, i<span class="keyword">=</span><span class="constant">1</span>, small_def, A<span class="keyword">=</span>[], B<span class="keyword">=</span>[], C<span class="keyword">=</span>[], T<span class="keyword">=</span>[], Cs<span class="keyword">=</span>[]);
+getnum(dvds_diff <span class="keyword">-</span> m_dvds, i<span class="keyword">=</span><span class="constant">1</span>, small_def, A<span class="keyword">=</span>[], B<span class="keyword">=</span>[], C<span class="keyword">=</span>[], T<span class="keyword">=</span>[], Cs<span class="keyword">=</span>[]);
+
+<span class="comment-delimiter">/*****************************************/</span>
+<span class="comment-delimiter">/************** </span><span class="comment">dsdv/ds *****************</span><span class="comment-delimiter">*/</span>
+<span class="comment-delimiter">/*****************************************/</span>
+m_dsdv<span class="keyword">:</span> kb<span class="keyword">*</span>SU(vpep_diff(<span class="builtin">expand</span>(dsdv<span class="keyword">/</span>(<span class="constant">2</span><span class="keyword">*</span>kb<span class="keyword">*</span>dt)), v(j,al)), [j, <span class="constant">1</span>, Np], [al, <span class="constant">1</span>, ndim])$
+m_dsdv<span class="keyword">:</span> vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dsdv))))$
+m_dsdv<span class="keyword">:</span> vpep_funall(<span class="builtin">factor</span>, m_dsdv)$
+<span class="comment-delimiter">/* </span><span class="comment">An expression ... </span><span class="comment-delimiter">*/</span>
+m_dsdv<span class="keyword">:</span> vpep_expand(m_dsdv);
+<span class="comment-delimiter">/* </span><span class="comment">Dummy particles comparison </span><span class="comment-delimiter">*/</span>
+getnum(m_dsdv, i<span class="keyword">=</span><span class="constant">1</span>, small_def, A<span class="keyword">=</span>[], B<span class="keyword">=</span>[], C<span class="keyword">=</span>[], T<span class="keyword">=</span>[], Cs<span class="keyword">=</span>[]);
+getnum(dsdv_diff, i<span class="keyword">=</span><span class="constant">1</span>, small_def, A<span class="keyword">=</span>[], B<span class="keyword">=</span>[], C<span class="keyword">=</span>[], T<span class="keyword">=</span>[], Cs<span class="keyword">=</span>[]);
+
+<span class="comment-delimiter">/*****************************************/</span>
+<span class="comment-delimiter">/************** </span><span class="comment">dsds/ds *****************</span><span class="comment-delimiter">*/</span>
+<span class="comment-delimiter">/*****************************************/</span>
+m_dsds<span class="keyword">:</span> kb<span class="keyword">*</span>SU(vpep_diff(dsds<span class="keyword">/</span>(<span class="constant">2</span><span class="keyword">*</span>kb<span class="keyword">*</span>dt), S(j)), [j, <span class="constant">1</span>, Np])$
+m_dsds<span class="keyword">:</span> vpep_const(m_dsds);
+m_dsds<span class="keyword">:</span> vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dsds))))$
+m_dsds<span class="keyword">:</span> vpep_funall(<span class="builtin">factor</span>, m_dsds)$
+m_dsds<span class="keyword">:</span> vpep_outative(m_dsds);
+
+<span class="comment-delimiter">/* </span><span class="comment">I got a mismatch between paper and my result </span><span class="comment-delimiter">*/</span>
+<span class="builtin">fullratsimp</span>(getnum(m_dsds <span class="keyword">-</span> dsds_diff, i<span class="keyword">=</span><span class="constant">2</span>, small_def, A<span class="keyword">=</span>[], B<span class="keyword">=</span>[], C<span class="keyword">=</span>[], T<span class="keyword">=</span>[], Cs<span class="keyword">=</span>[]));
+<span class="builtin">fullratsimp</span>(getnum(m_dsds <span class="keyword">-</span> dsds_diff, i<span class="keyword">=</span><span class="constant">1</span>, small_def, A<span class="keyword">=</span>[], B<span class="keyword">=</span>[], C<span class="keyword">=</span>[], T<span class="keyword">=</span>[], Cs<span class="keyword">=</span>[]));
+
+<span class="comment-delimiter">/*</span><span class="comment">
+
+Let rearrange the terms to make it look the same way as in the paper I
+think a term is missing in the paper. I put a box around it. It comes
+from a last term in (B3) --- C(i,j)^2
+
+introduce some notation </span><span class="comment-delimiter">*/</span>
+m_dsds_sb<span class="keyword">:</span> <span class="builtin">subst</span>([SU(ee(i,k,bep)<span class="keyword">*</span>vv(i,k,bep),[bep,<span class="constant">1</span>,ndim])<span class="keyword">^</span><span class="constant">2</span><span class="keyword">=</span>vte,
+                  SU(vv(i,k,alp)<span class="keyword">^</span><span class="constant">2</span>,[alp,<span class="constant">1</span>,ndim])<span class="keyword">=</span>v2], m_dsds)$
+m_dsds_sb<span class="keyword">:</span> <span class="builtin">scanmap</span>(<span class="builtin">factor</span>, m_dsds_sb);
+<span class="builtin">print</span>(m_dsds_sb);
+
+<span class="comment-delimiter">/*</span><span class="comment">
+this function is using the exact form of m_dsds_sb and will fail if
+you change something
+</span><span class="comment-delimiter">*/</span>
+
+m_dsds_sb<span class="keyword">:</span> arrange_dsds3(m_dsds_sb);
+</pre>
+  </body>
+</html>
