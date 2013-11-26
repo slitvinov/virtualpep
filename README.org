@@ -4,6 +4,7 @@ Derivation SDPD equations (by P. Espanol and M. Revenga).
 Main file is [[file:onerun.mac]]. See also examples in [[file:b1.mac]]
 
 [1] http://link.aps.org/doi/10.1103/PhysRevE.67.026705
+
 [2] https://sites.google.com/site/pepespanol
 
 * Installation
@@ -24,8 +25,9 @@ Run [[file:onerun.mac]] in batch mode and keep log file
 #+BEGIN_SRC sh
 maxima -b onerun.mac | tee local.log
 #+END_SRC
-Compare it with the reference logs in `log' directory. I do not expect
-an exact match but zeros should be in places like 
+Compare it with the reference logs in [[file:logs][`log' directory]]. I do not expect
+an exact match but if in reference file the result is zero you should
+get zero. For example:
 #+BEGIN_EXAMPLE
                     2
                    m  dvdv
@@ -81,6 +83,5 @@ Lisp implementation type: "GNU Common Lisp (GCL)"
 Lisp implementation version: "GCL 2.6.7"
 #+END_EXAMPLE
 * Usage
-Run step by step commands in [[file:b1.mac]] it is computing preliminary
-results (B1) and (B2) from appendix. Then run step by step
-file:onerun.mac.
+Run step by step commands in [[file:b1.mac]], it is computing preliminary
+results (B1) and (B2) from appendix. Then run file:onerun.mac file.
