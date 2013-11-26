@@ -193,46 +193,96 @@ STYLE-WARNING: redefining MAXIMA::OPCONS in DEFMACRO
                                                                       2
  + Cs(i) T(i) a(i, k) vv(i, k, al) T(k) kb)/(Cs(i) Cs(k) (T(k) + T(i))  m), 
 [k, 1, Np])
-(%i63) m_dvds_ref:vpep_expand(subst(small_def,sum2sumel(dvds_diff)))
-(%i64) getnum(m_dvds,i = 1,small_def,A = [],B = [],C = [],T = [],Cs = [])
+(%i63) m_dvds:vpep_outative(m_dvds)
+(%i64) m_dvds:substinpart(factor(piece),m_dvds,3,1,3,[1,2])
+(%i65) m_dvds:substinpart(factor(piece),m_dvds,3,1,[1,3])
+(%i66) m_dvds:substinpart(factor(piece),m_dvds,3,1,8,[1,2])
+(%i67) m_dvds:substinpart(box(multthru(piece)),m_dvds,3,1,[1,2,3,4,5])
+(%i68) m_dvds:vpep_expand(m_dvds)
+(%i69) sumel2sum(m_dvds)
+            Np
+           ====  """""""""""""""""""""""""""""""""""""""
+           \     "  Cs(i) T(i) T(k)        T(i) T(k)   "
+(%o69) (kb  >    "-------------------- + --------------"
+           /     "                   2                2"
+           ====  "Cs(k) (T(k) + T(i))    (T(k) + T(i)) "
+           k = 1 """""""""""""""""""""""""""""""""""""""
+                        ndim
+                        ====
+                        \
+ (a(i, k) ee(i, k, al) ( >      ee(i, k, bep) vv(i, k, bep)) ndim
+                        /
+                        ====
+                        bep = 1
+ + a(i, k) vv(i, k, al) ndim + (3 b(i, k) - 2 a(i, k)) ee(i, k, al)
+ ndim
+ ====
+ \
+  >      ee(i, k, bep) vv(i, k, bep)))/(Cs(i) m ndim)
+ /
+ ====
+ bep = 1
+(%i70) m_dvds_ref:vpep_expand(subst(small_def,sum2sumel(dvds_diff)))
+(%i71) getnum(m_dvds,i = 1,small_def,A = [],B = [],C = [],T = [],Cs = [])
+             2            2                     2                 2
+(%o71) - (((B (1, 2) + 2 A (1, 2)) T(2) + T(1) B (1, 2) + 2 T(1) A (1, 2))
+         """""""""""""""""""""""""""""""""""""""""""""""
+         "       (T(1) Cs(2) + Cs(1) T(1)) T(2)        "
+         "---------------------------------------------")/(6 Cs(1) T(1) T(2) m)
+         "       2                           2         "
+         "Cs(2) T (2) + 2 T(1) Cs(2) T(2) + T (1) Cs(2)"
+         """""""""""""""""""""""""""""""""""""""""""""""
+(%i72) getnum(dvds_diff,i = 1,small_def,A = [],B = [],C = [],T = [],Cs = [])
            2            2                       2                  2
          (B (1, 2) + 2 A (1, 2)) Cs(2) + Cs(1) B (1, 2) + 2 Cs(1) A (1, 2)
-(%o64) - -----------------------------------------------------------------
+(%o72) - -----------------------------------------------------------------
                     (6 Cs(1) Cs(2) T(2) + 6 Cs(1) T(1) Cs(2)) m
-(%i65) getnum(dvds_diff,i = 1,small_def,A = [],B = [],C = [],T = [],Cs = [])
-           2            2                       2                  2
-         (B (1, 2) + 2 A (1, 2)) Cs(2) + Cs(1) B (1, 2) + 2 Cs(1) A (1, 2)
-(%o65) - -----------------------------------------------------------------
-                    (6 Cs(1) Cs(2) T(2) + 6 Cs(1) T(1) Cs(2)) m
-(%i66) getnum(dvds_diff-m_dvds,i = 1,small_def,A = [],B = [],C = [],T = [],Cs
+(%i73) getnum(dvds_diff-m_dvds,i = 1,small_def,A = [],B = [],C = [],T = [],Cs
                                                                              = [
                                                                              ])
-(%o66)                                 0
-(%i67) m_dsdv:kb*SU(vpep_diff(expand(dsdv/(2*kb*dt)),v(j,al)),[j,1,Np],
+           2            2               2
+(%o73) (((B (1, 2) + 2 A (1, 2)) Cs(2) T (2)
+            2                 2
+ + (2 T(1) B (1, 2) + 4 T(1) A (1, 2)) Cs(2) T(2)
+     2     2            2     2
+ + (T (1) B (1, 2) + 2 T (1) A (1, 2)) Cs(2))
+ """""""""""""""""""""""""""""""""""""""""""""""
+ "       (T(1) Cs(2) + Cs(1) T(1)) T(2)        "
+ "---------------------------------------------"
+ "       2                           2         "
+ "Cs(2) T (2) + 2 T(1) Cs(2) T(2) + T (1) Cs(2)"
+ """""""""""""""""""""""""""""""""""""""""""""""
+             2                 2                            2
+ + ((- T(1) B (1, 2) - 2 T(1) A (1, 2)) Cs(2) - Cs(1) T(1) B (1, 2)
+                 2                                    2
+ - 2 Cs(1) T(1) A (1, 2)) T(2))/((6 Cs(1) T(1) Cs(2) T (2)
+            2
+ + 6 Cs(1) T (1) Cs(2) T(2)) m)
+(%i74) m_dsdv:kb*SU(vpep_diff(expand(dsdv/(2*kb*dt)),v(j,al)),[j,1,Np],
                     [al,1,ndim])
-(%i68) m_dsdv:vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dsdv))))
-(%i69) m_dsdv:vpep_funall(factor,m_dsdv)
-(%i70) m_dsdv:vpep_expand(m_dsdv)
+(%i75) m_dsdv:vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dsdv))))
+(%i76) m_dsdv:vpep_funall(factor,m_dsdv)
+(%i77) m_dsdv:vpep_expand(m_dsdv)
                                    2
             2 T(k) kb (a(i, k) ndim  + a(i, k) ndim + 3 b(i, k) - 2 a(i, k))
-(%o70) SU(- ----------------------------------------------------------------, 
+(%o77) SU(- ----------------------------------------------------------------, 
                                   (T(k) + T(i)) m ndim
                      a(i, i) kb ndim   3 b(i, i) kb   2 a(i, i) kb   a(i, i) kb
        [k, 1, Np]) + --------------- + ------------ - ------------ + ----------
                             m             m ndim         m ndim          m
-(%i71) getnum(m_dsdv,i = 1,small_def,A = [],B = [],C = [],T = [],Cs = [])
+(%i78) getnum(m_dsdv,i = 1,small_def,A = [],B = [],C = [],T = [],Cs = [])
                                2            2
                               B (1, 2) + 5 A (1, 2)
-(%o71)                      - ---------------------
+(%o78)                      - ---------------------
                                     6 T(1) m
-(%i72) getnum(dsdv_diff,i = 1,small_def,A = [],B = [],C = [],T = [],Cs = [])
+(%i79) getnum(dsdv_diff,i = 1,small_def,A = [],B = [],C = [],T = [],Cs = [])
                                2            2
                               B (1, 2) + 5 A (1, 2)
-(%o72)                      - ---------------------
+(%o79)                      - ---------------------
                                     6 T(1) m
-(%i73) m_dsds:kb*SU(vpep_diff(dsds/(2*kb*dt),S(j)),[j,1,Np])
-(%i74) m_dsds:vpep_const(m_dsds)
-(%o74) kb SU(((dt ((kron_delta(i, j) SU(12
+(%i80) m_dsds:kb*SU(vpep_diff(dsds/(2*kb*dt),S(j)),[j,1,Np])
+(%i81) m_dsds:vpep_const(m_dsds)
+(%o81) kb SU(((dt ((kron_delta(i, j) SU(12
                  2
  (T(i) b(i, k) SU (ee(i, k, bep) vv(i, k, bep), [bep, 1, ndim])
   kron_delta(j, k) T(k) kb
@@ -346,11 +396,11 @@ STYLE-WARNING: redefining MAXIMA::OPCONS in DEFMACRO
   T(j)    T(i) kron_delta(i, j)                   2
  (----- + ---------------------) kb)/(T(j) + T(i)) )/(2 dt kb), [j, 1, Np])
   Cs(j)           Cs(i)
-(%i75) m_dsds:vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dsds))))
-(%i76) m_dsds:vpep_funall(factor,m_dsds)
-(%i77) m_dsds:vpep_outative(m_dsds)
+(%i82) m_dsds:vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dsds))))
+(%i83) m_dsds:vpep_funall(factor,m_dsds)
+(%i84) m_dsds:vpep_outative(m_dsds)
                               3
-(%o77) SU((- 2 c(i, k) Cs(k) T (k) kb ndim
+(%o84) SU((- 2 c(i, k) Cs(k) T (k) kb ndim
              2                                                     2
  - a(i, k) SU (ee(i, k, bep) vv(i, k, bep), [bep, 1, ndim]) Cs(k) T (k) kb ndim
                          2
@@ -389,24 +439,24 @@ STYLE-WARNING: redefining MAXIMA::OPCONS in DEFMACRO
                      2                                     c(i, i) kb
 /(Cs(k) (T(k) + T(i)) ), [k, 1, Np])/(2 Cs(i) T(i) ndim) + ----------
                                                              Cs(i)
-(%i78) fullratsimp(getnum(m_dsds-dsds_diff,i = 2,small_def,A = [],B = [],
+(%i85) fullratsimp(getnum(m_dsds-dsds_diff,i = 2,small_def,A = [],B = [],
                           C = [],T = [],Cs = []))
                                     2
                                    C (2, 2)
-(%o78)                           -------------
+(%o85)                           -------------
                                           2
                                  2 Cs(2) T (2)
-(%i79) fullratsimp(getnum(m_dsds-dsds_diff,i = 1,small_def,A = [],B = [],
+(%i86) fullratsimp(getnum(m_dsds-dsds_diff,i = 1,small_def,A = [],B = [],
                           C = [],T = [],Cs = []))
                                     2
                                    C (1, 1)
-(%o79)                           -------------
+(%o86)                           -------------
                                           2
                                  2 Cs(1) T (1)
-(%i80) m_dsds_sb:subst([SU(ee(i,k,bep)*vv(i,k,bep),[bep,1,ndim])^2 = vte,
+(%i87) m_dsds_sb:subst([SU(ee(i,k,bep)*vv(i,k,bep),[bep,1,ndim])^2 = vte,
                         SU(vv(i,k,alp)^2,[alp,1,ndim]) = v2],m_dsds)
-(%i81) m_dsds_sb:scanmap(factor,m_dsds_sb)
-(%o81) (SU(- (T(k) kb (a(i, k) Cs(k) T(k) ndim vte
+(%i88) m_dsds_sb:scanmap(factor,m_dsds_sb)
+(%o88) (SU(- (T(k) kb (a(i, k) Cs(k) T(k) ndim vte
  + 2 T(i) a(i, k) Cs(k) ndim vte + Cs(i) T(i) a(i, k) ndim vte
  + 3 b(i, k) Cs(k) T(k) vte - 2 a(i, k) Cs(k) T(k) vte
  + 6 T(i) b(i, k) Cs(k) vte - 4 T(i) a(i, k) Cs(k) vte
@@ -419,7 +469,7 @@ STYLE-WARNING: redefining MAXIMA::OPCONS in DEFMACRO
                      2
 /(Cs(k) (T(k) + T(i)) ), [k, 1, Np]) + 2 T(i) c(i, i) kb ndim)
 /(2 Cs(i) T(i) ndim)
-(%i82) print(m_dsds_sb)
+(%i89) print(m_dsds_sb)
 (SU(- (T(k) kb (a(i, k) Cs(k) T(k) ndim vte + 2 T(i) a(i, k) Cs(k) ndim vte
  + Cs(i) T(i) a(i, k) ndim vte + 3 b(i, k) Cs(k) T(k) vte
  - 2 a(i, k) Cs(k) T(k) vte + 6 T(i) b(i, k) Cs(k) vte
@@ -431,7 +481,7 @@ STYLE-WARNING: redefining MAXIMA::OPCONS in DEFMACRO
       2                                             2
  + 2 T (i) c(i, k) Cs(k) ndim))/(Cs(k) (T(k) + T(i)) ), [k, 1, Np])
  + 2 T(i) c(i, i) kb ndim)/(2 Cs(i) T(i) ndim) 
-(%o82) (SU(- (T(k) kb (a(i, k) Cs(k) T(k) ndim vte
+(%o89) (SU(- (T(k) kb (a(i, k) Cs(k) T(k) ndim vte
  + 2 T(i) a(i, k) Cs(k) ndim vte + Cs(i) T(i) a(i, k) ndim vte
  + 3 b(i, k) Cs(k) T(k) vte - 2 a(i, k) Cs(k) T(k) vte
  + 6 T(i) b(i, k) Cs(k) vte - 4 T(i) a(i, k) Cs(k) vte
@@ -444,11 +494,11 @@ STYLE-WARNING: redefining MAXIMA::OPCONS in DEFMACRO
                      2
 /(Cs(k) (T(k) + T(i)) ), [k, 1, Np]) + 2 T(i) c(i, i) kb ndim)
 /(2 Cs(i) T(i) ndim)
-(%i83) m_dsds_sb:arrange_dsds3(m_dsds_sb)
+(%i90) m_dsds_sb:arrange_dsds3(m_dsds_sb)
            Np
           ====
           \            T(j) kb
-(%o83) - ( >    (------------------- + d(i, j))
+(%o90) - ( >    (------------------- + d(i, j))
           /      Cs(i) (T(j) + T(i))
           ====
           j = 1
@@ -466,4 +516,4 @@ STYLE-WARNING: redefining MAXIMA::OPCONS in DEFMACRO
     j = 1
  - -----------------------
          Cs(i) T(i)
-(%o83)                /scratch/work/virtualpep/onerun.mac
+(%o90)                /scratch/work/virtualpep/onerun.mac
