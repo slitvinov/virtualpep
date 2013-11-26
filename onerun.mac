@@ -85,9 +85,19 @@ the paper. Instead I transform the "book" value.
 */
 dvdv: dvwave(i, al) * dvwave(j, be)$
 /* I got this one ... */
-dvdv: vpep_canonical(vpep_outative(ALLINONE(dvdv)));
+dvdv: vpep_canonical(vpep_outative(ALLINONE(dvdv)))$
+/* rearrange the terms */
+dvdv: substinpart(factor(piece), dvdv, [1, 2])$
+dvdv: substinpart(factor(piece), dvdv, [4, 5])$
+dvdv: substinpart(factor(piece), dvdv, [2, 3])$
+dvdv: substinpart(factor(piece), dvdv, [4, 5])$
+dvdv: substinpart(factor(piece), dvdv, [2, 4])$
+sumel2sum(dvdv);
+
+
 /* the difference with the book value should be zero */
 fullratsimp(m^2*dvdv/dt - vpep_outative(vpep_fullexpand(sum2sumel(dvdv_book))));
+
 
 dvds: dvwave(i, al) * dswave(j)$
 dvds: vpep_canonical(vpep_outative(ALLINONE(dvds)))$
@@ -134,10 +144,10 @@ sumalg.mac)
 Cs(i) is the heat capacity at constan volume (C(i) in the paper)
 
 */
-vpep_table[T, T]   : lambda([i,j],                 kron_delta(i,j));
-vpep_table[S, S]   : lambda([i,j],                 kron_delta(i,j));
-vpep_table[T, S]   : lambda([i,j],                 T(i)/Cs(i)*kron_delta(i,j));
-vpep_table[v, v]   : lambda([i,al, j, be],         kron_delta(i,j)*kron_delta(al,be));
+vpep_table[T, T]   : lambda([i,j],                 kron_delta(i,j))$
+vpep_table[S, S]   : lambda([i,j],                 kron_delta(i,j))$
+vpep_table[T, S]   : lambda([i,j],                 T(i)/Cs(i)*kron_delta(i,j))$
+vpep_table[v, v]   : lambda([i,al, j, be],         kron_delta(i,j)*kron_delta(al,be))$
 
 /* we substitute for the expressions we differentiate with dv */
 [dvdv, dsdv]: subst(vv=lambda([i,j,al], v(i,al) - v(j,al)), [dvdv, dsdv])$
@@ -172,16 +182,16 @@ m_dvds: vpep_outative(m_dvds)$
 m_dvds: fullratsimp(vpep_expand(vpep_outative(vpep_const(vpep_kron(vpep_expand(m_dvds))))))$
 m_dvds: vpep_combine(vpep_combine(vpep_canonical(m_dvds)))$
 m_dvds: vpep_funall(factor, m_dvds)$
-m_dvds: vpep_expand(m_dvds);
-m_dvds: vpep_outative(m_dvds)$
-/* make some cosmtic changes */
-m_dvds: substinpart(factor(piece), m_dvds, 3, 1, 3, [1, 2])$
-m_dvds: substinpart(factor(piece), m_dvds, 3, 1, [1, 3])$
-m_dvds: substinpart(factor(piece), m_dvds, 3, 1, 8, [1, 2])$
-m_dvds: substinpart(box(multthru(piece)), m_dvds, 3, 1, [1, 2, 3, 4, 5])$
-/* it is almost dij in the box, just Cs(i) is missin */
 m_dvds: vpep_expand(m_dvds)$
-sumel2sum(m_dvds);
+m_dvds: vpep_outative(m_dvds);
+/* make some cosmtic changes */
+m_dvds_sb: substinpart(factor(piece), m_dvds, 3, 1, 3, [1, 2])$
+m_dvds_sb: substinpart(factor(piece), m_dvds_sb, 3, 1, [1, 3])$
+m_dvds_sb: substinpart(factor(piece), m_dvds_sb, 3, 1, 8, [1, 2])$
+m_dvds_sb: substinpart(box(multthru(piece)), m_dvds_sb, 3, 1, [1, 2, 3, 4, 5])$
+/* it is almost dij in the box, just Cs(i) is missin */
+m_dvds_sb: vpep_expand(m_dvds_sb)$
+sumel2sum(m_dvds_sb);
 
 /*
 I did not push the from too match the paper one but it is easy to see
@@ -199,8 +209,13 @@ getnum(dvds_diff - m_dvds, i=1, small_def, A=[], B=[], C=[], T=[], Cs=[]);
 m_dsdv: kb*SU(vpep_diff(expand(dsdv/(2*kb*dt)), v(j,al)), [j, 1, Np], [al, 1, ndim])$
 m_dsdv: vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dsdv))))$
 m_dsdv: vpep_funall(factor, m_dsdv)$
-/* An expression ... */
-m_dsdv: vpep_expand(m_dsdv);
+/* And the expression ... */
+m_dsdv: vpep_expand(m_dsdv)$
+/* clean up it */
+m_dsdv: substinpart(factor(piece), m_dsdv, [1, 2, 4])$
+m_dsdv: substinpart(factor(piece), m_dsdv, 3, 1, 7, [1, 3, 4])$
+sumel2sum(m_dsdv);
+
 /* Dummy particles comparison */
 getnum(m_dsdv, i=1, small_def, A=[], B=[], C=[], T=[], Cs=[]);
 getnum(dsdv_diff, i=1, small_def, A=[], B=[], C=[], T=[], Cs=[]);
@@ -209,7 +224,7 @@ getnum(dsdv_diff, i=1, small_def, A=[], B=[], C=[], T=[], Cs=[]);
 /************** dsds/ds ******************/
 /*****************************************/
 m_dsds: kb*SU(vpep_diff(dsds/(2*kb*dt), S(j)), [j, 1, Np])$
-m_dsds: vpep_const(m_dsds);
+m_dsds: vpep_const(m_dsds)$
 m_dsds: vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dsds))))$
 m_dsds: vpep_funall(factor, m_dsds)$
 m_dsds: vpep_outative(m_dsds);
@@ -228,11 +243,9 @@ introduce some notation */
 m_dsds_sb: subst([SU(ee(i,k,bep)*vv(i,k,bep),[bep,1,ndim])^2=vte,
                   SU(vv(i,k,alp)^2,[alp,1,ndim])=v2], m_dsds)$
 m_dsds_sb: scanmap(factor, m_dsds_sb);
-print(m_dsds_sb);
 
 /*
 this function is using the exact form of m_dsds_sb and will fail if
 you change something
 */
-
 m_dsds_sb: arrange_dsds3(m_dsds_sb);
