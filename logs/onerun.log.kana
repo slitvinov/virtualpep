@@ -172,6 +172,99 @@ STYLE-WARNING: redefining MAXIMA::OPCONS in DEFMACRO
 (%i52) m_dvdv:vpep_const(kb*SU(vpep_diff(dvdv/(2*kb*dt),v(j,alp)),[j,1,Np]))
 (%o52)                                 0
 (%i53) m_dvds:kb*SU(vpep_diff(dvds,S(j))/(2*kb*dt),[j,1,Np])
+(%o53) kb SU((- (dt kron_delta(i, j) SU((12 T(i) b(i, k) ee(i, k, al)
+ ee(i, k, alp) vv(i, k, alp) kron_delta(j, k) T(k) kb)/(Cs(k) (T(k) + T(i)))
+ + (12 T(i) kron_delta(i, j) b(i, k) ee(i, k, al) ee(i, k, alp) vv(i, k, alp)
+ T(k) kb)/(Cs(i) (T(k) + T(i))) - (12 T(i) b(i, k) ee(i, k, al) ee(i, k, alp)
+                     kron_delta(j, k) T(k)   T(i) kron_delta(i, j)
+ vv(i, k, alp) T(k) (--------------------- + ---------------------) kb)
+                             Cs(k)                   Cs(i)
+              2
+/(T(k) + T(i)) , [alp, 1, ndim], [k, 1, Np]))/(2 T(i) m ndim)
+ + (dt kron_delta(i, j) SU((8 T(i) a(i, k) ee(i, k, al) ee(i, k, alp)
+ vv(i, k, alp) kron_delta(j, k) T(k) kb)/(Cs(k) (T(k) + T(i)))
+ + (8 T(i) kron_delta(i, j) a(i, k) ee(i, k, al) ee(i, k, alp) vv(i, k, alp)
+ T(k) kb)/(Cs(i) (T(k) + T(i))) - (8 T(i) a(i, k) ee(i, k, al) ee(i, k, alp)
+                     kron_delta(j, k) T(k)   T(i) kron_delta(i, j)
+ vv(i, k, alp) T(k) (--------------------- + ---------------------) kb)
+                             Cs(k)                   Cs(i)
+              2
+/(T(k) + T(i)) , [alp, 1, ndim], [k, 1, Np]))/(2 T(i) m ndim)
+ + (dt kron_delta(i, j)
+    12 T(i) b(i, k) ee(i, k, al) ee(i, k, alp) vv(i, k, alp) T(k) kb
+ SU(----------------------------------------------------------------, 
+                              T(k) + T(i)
+[alp, 1, ndim], [k, 1, Np]))/(2 Cs(i) T(i) m ndim)
+ - (dt kron_delta(i, j) SU((8 T(i) a(i, k) ee(i, k, al) ee(i, k, alp)
+ vv(i, k, alp) T(k) kb)/(T(k) + T(i)), [alp, 1, ndim], [k, 1, Np]))
+/(2 Cs(i) T(i) m ndim) - (6 dt T(i) b(i, j) kron_delta(i, j) ee(i, j, al)
+ SU(ee(i, j, alp) vv(i, j, alp), [alp, 1, ndim]) kb)
+/(Cs(i) (T(j) + T(i)) m ndim) + (4 dt T(i) a(i, j) kron_delta(i, j)
+ ee(i, j, al) SU(ee(i, j, alp) vv(i, j, alp), [alp, 1, ndim]) kb)
+/(Cs(i) (T(j) + T(i)) m ndim)
+   6 SU(0, [alp, 1, ndim]) dt T(i) b(i, j) ee(i, j, al) kb
+ - -------------------------------------------------------
+                    (T(j) + T(i)) m ndim
+   4 SU(0, [alp, 1, ndim]) dt T(i) a(i, j) ee(i, j, al) kb
+ + -------------------------------------------------------
+                    (T(j) + T(i)) m ndim
+ + (6 dt T(i) b(i, j) ee(i, j, al) SU(ee(i, j, alp) vv(i, j, alp), 
+                 T(j)    T(i) kron_delta(i, j)                    2
+[alp, 1, ndim]) (----- + ---------------------) kb)/((T(j) + T(i))  m ndim)
+                 Cs(j)           Cs(i)
+ - (4 dt T(i) a(i, j) ee(i, j, al) SU(ee(i, j, alp) vv(i, j, alp), 
+                 T(j)    T(i) kron_delta(i, j)                    2
+[alp, 1, ndim]) (----- + ---------------------) kb)/((T(j) + T(i))  m ndim)
+                 Cs(j)           Cs(i)
+ - (dt kron_delta(i, j) SU((8 T(i) a(i, k) ee(i, k, al) ee(i, k, alp)
+ vv(i, k, alp) kron_delta(j, k) T(k) kb)/(Cs(k) (T(k) + T(i)))
+ + (8 T(i) kron_delta(i, j) a(i, k) ee(i, k, al) ee(i, k, alp) vv(i, k, alp)
+ T(k) kb)/(Cs(i) (T(k) + T(i))) - (8 T(i) a(i, k) ee(i, k, al) ee(i, k, alp)
+                     kron_delta(j, k) T(k)   T(i) kron_delta(i, j)
+ vv(i, k, alp) T(k) (--------------------- + ---------------------) kb)
+                             Cs(k)                   Cs(i)
+              2
+/(T(k) + T(i)) , [alp, 1, ndim], [k, 1, Np]))/(4 T(i) m)
+ - (dt kron_delta(i, j) SU((8 T(i) a(i, k) vv(i, k, al) kron_delta(j, k) T(k)
+ kb)/(Cs(k) (T(k) + T(i)))
+   8 T(i) kron_delta(i, j) a(i, k) vv(i, k, al) T(k) kb
+ + ----------------------------------------------------
+                   Cs(i) (T(k) + T(i))
+                                      kron_delta(j, k) T(k)
+ - (8 T(i) a(i, k) vv(i, k, al) T(k) (---------------------
+                                              Cs(k)
+   T(i) kron_delta(i, j)                   2
+ + ---------------------) kb)/(T(k) + T(i)) , [k, 1, Np]))/(4 T(i) m)
+           Cs(i)
+ + (dt kron_delta(i, j)
+    8 T(i) a(i, k) ee(i, k, al) ee(i, k, alp) vv(i, k, alp) T(k) kb
+ SU(---------------------------------------------------------------, 
+                              T(k) + T(i)
+[alp, 1, ndim], [k, 1, Np]))/(4 Cs(i) T(i) m)
+                          8 T(i) a(i, k) vv(i, k, al) T(k) kb
+   dt kron_delta(i, j) SU(-----------------------------------, [k, 1, Np])
+                                      T(k) + T(i)
+ + -----------------------------------------------------------------------
+                               4 Cs(i) T(i) m
+ - (2 dt T(i) a(i, j) kron_delta(i, j) ee(i, j, al)
+ SU(ee(i, j, alp) vv(i, j, alp), [alp, 1, ndim]) kb)/(Cs(i) (T(j) + T(i)) m)
+   2 dt T(i) a(i, j) kron_delta(i, j) vv(i, j, al) kb
+ - --------------------------------------------------
+                 Cs(i) (T(j) + T(i)) m
+   2 SU(0, [alp, 1, ndim]) dt T(i) a(i, j) ee(i, j, al) kb
+ - -------------------------------------------------------
+                       (T(j) + T(i)) m
+ + (2 dt T(i) a(i, j) ee(i, j, al) SU(ee(i, j, alp) vv(i, j, alp), 
+                 T(j)    T(i) kron_delta(i, j)                    2
+[alp, 1, ndim]) (----- + ---------------------) kb)/((T(j) + T(i))  m)
+                 Cs(j)           Cs(i)
+                                   T(j)    T(i) kron_delta(i, j)
+   2 dt T(i) a(i, j) vv(i, j, al) (----- + ---------------------) kb
+                                   Cs(j)           Cs(i)
+ + -----------------------------------------------------------------)
+                                        2
+                           (T(j) + T(i))  m
+/(2 dt kb), [j, 1, Np])
 (%i54) m_dvds:vpep_combine(vpep_expand(vpep_canonical(ALLINONE(m_dvds))))
 (%i55) m_dvds:vpep_funall(factor,m_dvds)
 (%i56) m_dvds:vpep_expand(m_dvds)

@@ -339,3 +339,40 @@ a[i,j]*kron_delta(i,j)$
 
 vpep_kronilike(kron_delta(i,j)*a[i,j] + kron_delta(n,m)*a[m,i], [i, m]);
 a[m,i]*kron_delta(m,n)+a[i,i]*kron_delta(i,j)$
+
+(vpep_table[T, T]   : lambda([i,j],                 kron_delta(i,j)),
+  vpep_table[T, S]   : lambda([i,j],                 T(i)/Cs(i)*kron_delta(i,j)),
+  vpep_table[S, S]   : lambda([i,j],                 kron_delta(i,j)),
+  vpep_diff(S(j), S(i)));
+kron_delta(i, j)$
+
+vpep_diff(S(i), S(i));
+1$
+
+vpep_diff(S(j)^2, S(i));
+2*kron_delta(i, j)*S(j)$
+
+vpep_diff(S(j) + S(k), S(i));
+kron_delta(i, k) + kron_delta(i, j)$
+
+vpep_diff(T(j), S(i));
+kron_delta(i,j)*T(j)/Cs(j)$
+
+vpep_diff(kron_delta(i,j), S(i));
+0$
+
+(vpep_table[r, t]   : lambda([],                 v),
+  vpep_diff(r, t));
+v$
+
+vpep_diff(cos(r), t);
+-sin(r)*v$
+
+vpep_diff(cos(sin(r)), t);
+-cos(r)*sin(sin(r))*v$
+
+vpep_diff(SU(S(i), [i, 1, n]), S(j));
+SU(kron_delta(i,j),[i,1,n])$
+
+vpep_diff(SU(S(i), [i, 1, n]) + SU(S(k), [k, 1, n]), S(j));
+SU(kron_delta(j,k),[k,1,n])+SU(kron_delta(i,j),[i,1,n])$

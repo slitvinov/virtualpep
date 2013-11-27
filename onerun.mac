@@ -8,8 +8,7 @@ load("sdpd-garbage.mac")$
 
 /* define indexes to substitute for vpep_canonical
 lo, hi, nest level,  number
-to make sums look better
-*/
+to make sums look better */
 vpep_userindex[1, ndim, 0, 1]: alp$
 vpep_userindex[1, ndim, 1, 1]: bep$
 vpep_userindex[1, Np,   0, 1]: k$
@@ -59,10 +58,7 @@ you can go back and forward between SU and maxima sum
 the form on the thermal noise (see eq. (49))
 i,j,k,ip,jp are particle indexes, Np is a number of particles
 al, be, alp, bep are coordinate indexes (X, [Y], [Z]), ndim is a number of dimensions (1, 2, 3),
-define an auxiliary object to simplify notation
-
-*/
-
+define an auxiliary object to simplify notation */
 aux(i, j, al, be):= A(i,j)*wave(i, j, al, be) +
                         B(i,j)*kron_delta(al,be)/ndim*tr(i, j)$
 dvwave(i, al):=SU(aux(i, ip, al, alp)*ee(i, ip, alp),
@@ -72,9 +68,7 @@ dswave(i):= (
     [ip, 1, Np]) + SU(C(i,ip)*dV(i,ip), [ip, 1, Np])
   ) / T(i)$
 
-/*
-
-calculate RHS in (B3): opening up all sums and use Ito rules, summation
+/* calculate RHS in (B3): opening up all sums and use Ito rules, summation
 with kron_delta, normalization for eij  etc (see sdpd-rules.mac and sdpd-assume.mac),
 compare with "book" values I typed in from the paper (see sdpd-book.mac)
 ALLINONE is a chain of SU transformations defined in sdpd-rules.mac
@@ -152,11 +146,9 @@ vpep_table[v, v]   : lambda([i,al, j, be],         kron_delta(i,j)*kron_delta(al
 /* we substitute for the expressions we differentiate with dv */
 [dvdv, dsdv]: subst(vv=lambda([i,j,al], v(i,al) - v(j,al)), [dvdv, dsdv])$
 
-/*
-substitute "small" parameters, in other words going from [A, B, C] to
+/* substitute "small" parameters, in other words going from [A, B, C] to
 [a, b, c]. Here we postulate how A, B, C depend on temperature (see
-sdpd-book.mac for the definitions, see eq. (60)
- */
+sdpd-book.mac for the definitions, see eq. (60) */
 [dvdv, dvds, dsdv, dsds]: subst(big_def, [dvdv, dvds, dsdv, dsds])$
 
 /*****************************************/
@@ -246,6 +238,5 @@ m_dsds_sb: scanmap(factor, m_dsds_sb);
 
 /*
 this function is using the exact form of m_dsds_sb and will fail if
-you change something
-*/
+you change something */
 m_dsds_sb: arrange_dsds3(m_dsds_sb);

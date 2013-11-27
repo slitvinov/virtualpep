@@ -174,7 +174,7 @@ var2hide(expr):= concat(expr, "__");
 hide2var(expr):= if hidevarp(expr) then 
   block([s: string(expr)],
     parse_string(sremove("__", s, 'sequal, slength(s)-1, slength(s)+1)))
-  else error("attemt to use hide2var with inproper argument");
+  else error("attempt to use hide2var with inproper argument");
 vpep_hideindexes_aux(expr):=block([summand: getsummand(expr),
     vars: getvars(expr),
   varlohi: getvarlohi(expr),
@@ -436,25 +436,47 @@ block([simp: false],
   /* do I need this? */
   defrule(rvpep_withkron2, kron_delta(ii,jj)*pp, vpep_subst(jj=ii, pp)*kron_delta(ii,jj)));
 
-/* diff of the expression with respect to the function f(i)
-TODO: can handle only very simple situations (DO NOT TRUST IT)
-*/
-load("simplifying.lisp");
+/* diff of the expression with respect to the functions and subscripted variables */
 vpep_table[otherwise,otherwise]:= false;
-fn_vpep_diff(expr, var):=
-block([prederror: true, df: lambda([q], vpep_diff(q, var)), rdiff: lambda([q], diff(q, var)), op: safe_op(expr)],
-  if op="+" then map( df, expr)
-  else if op="*" then block([a: first(inargs(expr)), b: apply("*", rest(inargs(expr)))],
-    df(a)*b + a*df(b))
-  else if op="^" and mapatom(inpart(expr, 2)) then block([a: inpart(expr, 2), y: inpart(expr, 1)], a*y^(a-1)*df(y))
-  else if op='SU then vpep_fun(df, expr)
-  else if op='kron_delta then 0
-  else if constantp(expr) then 0
-  else if vpep_table[op,safe_op(var)]#false then block([idx: append(inargs(expr), inargs(var))],
-    apply(vpep_table[op,safe_op(var)], idx))
-  /* assume all other creatures are zero */
-  else if mapatom(expr) then 0
-  else if op#false then 0
-  else simpfuncall('vpep_diff, expr, var));
-simplifying('vpep_diff,'fn_vpep_diff)$
 
+/* lookups a derivative in a table */
+%DEBUG_TABLE%: false;
+vpep_difflookup(expr, var):= block([vp: vpep_table[vpep_op_or_sub(expr), vpep_op_or_sub(var)]],
+  if vp#false then block([idx: append(vpep_args_or_index(expr), vpep_args_or_index(var))],
+    if %DEBUG_TABLE% then (disp("calling vpep_table"), disp(funmake(vp, idx))),
+    apply(vp, idx))
+  else false);
+
+/* returns `[i,j]' for x[i,j] or x(i,j)  and  [] for x */
+vpep_args_or_index(expr):= block([op: safe_op(expr)], if op#false then inargs(expr)
+  else if subvarp(expr) then inargs(expr)
+  else []);
+
+/* returns `x' for x[i,j] or x(i,j) or x */
+vpep_op_or_sub(expr):= block([op: safe_op(expr)], if op#false then op
+  else if subvarp(expr) then part(expr, 0)
+  else expr);
+
+load("simplifying.lisp");
+fn_vpep_diff(expr, var):= block([prederror: true, listarith: true, vd, op, summand, varlohi, rst],
+  if constantp(expr) then return(0),
+  if expr=var then return(1),
+  op: safe_op(expr),
+  if verbify(op)=SU then (if anymemeber(listofvarsandsub(var), getvars(expr)) then error("confilicting index in var and expr") else 
+    return(vpep_fun(lambda([q], vpep_diff(q, var)), expr))),
+  if verbify(op)=sum or verbify(op)=lsum or verbify(op)=product or verbify(op)=diff
+  then (summand: first(inargs(expr)), rst: rest(inargs(expr)),
+    summand: vpep_diff(summand, var),
+    return(funmake(op, cons(summand, rst)))),
+  vd: vpep_difflookup(expr, var),
+  if vd#false then return(vd),
+  /* outsource the work to maxima diff */
+  if op#false then block([realvars: inargs(expr), dummyvars, lpardiff],
+    dummyvars: makelist(gensym(), length(realvars)),
+    expr: funmake(op, dummyvars),
+    lpardiff: maplist( lambda([q], diff(expr, q)), dummyvars),
+    lvardiff: maplist( lambda([q], vpep_diff(q, var)), realvars),
+    apply("+", subst( maplist("=", dummyvars, realvars), lpardiff) * lvardiff))
+  else 0);
+
+simplifying('vpep_diff,'fn_vpep_diff)$
