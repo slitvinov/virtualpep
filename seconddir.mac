@@ -1,0 +1,54 @@
+kill(all);
+reset();
+load("sumalg.mac")$
+
+
+/* original version was from Barton Willis
+http://www.math.utexas.edu/pipermail/maxima/2011/025600.html */
+ibyparts(ii,f) := block ([gp,x,igp,lo,hi,partswitch : true],
+  if verbify(part(ii,0)) # verbify('integrate) then error("ouch"),
+  gp: part(ii,1)/f,
+  x : part(ii,2),
+  lo : part(ii,3),
+  hi : part(ii,4), 
+  igp : integrate(gp,x),
+  if lo # 'end then 
+     at(igp * f,x=hi) - at(igp * f,x=lo) - integrate(igp *  diff(f,x),x,lo,hi)
+  else  igp * f -  integrate(igp *  diff(f,x),x))$
+
+
+declare(cartesianvector, feature);
+cartesianvectorp(expr):= featurep(expr, cartesianvector);
+
+simp: false;
+matchdeclare(rr, cartesianvectorp);
+matchdeclare(intexpr, true);
+matchdeclare(radius, true);
+matchdeclare(xx, lambda([q], q='x));
+matchdeclare(yy, lambda([q], q='y));
+matchdeclare(zz, lambda([q], q='z));
+matchdeclare(rrc,lambda([q], q='Rc));
+/* http://en.wikipedia.org/wiki/Spherical_coordinate_system#Integration_and_differentiation_in_spherical_coordinates */
+defrule(cartesian2sphericalX, rr[xx], rr['Rs]*sin(rr['theta])*cos(rr['phi]));
+defrule(cartesian2sphericalY, rr[yy], rr['Rs]*sin(rr['theta])*sin(rr['phi]));
+defrule(cartesian2sphericalZ, rr[zz], rr['Rs]*cos(rr['phi]));
+defrule(cartesian2sphericalR, rr[rrc],rr['Rs]);
+defrule(cartesian2sphericalInt, SpherVolumeIntegral(intexpr, rr, radius),
+  'integrate('integrate('integrate(
+        intexpr * rr['Rs]^2 * sin(rr['theta]),
+        rr['phi], 0, 2*%pi),
+      rr['theta], 0, %pi),
+    rr['Rs], 0, radius));
+simp: true;
+
+cartesian2spherical(expr):= apply1(expr, cartesian2sphericalX,
+  cartesian2sphericalY, cartesian2sphericalZ, cartesian2sphericalR,
+  cartesian2sphericalInt);
+
+declare(rp, cartesianvector);
+apply1(rp[x], cartesian2sphericalX);
+apply1(SpherVolumeIntegral(rp['x], rp, z), cartesian2sphericalInt);
+
+cartesian2spherical(SpherVolumeIntegral(rp['x]^2, rp, h));
+ev(%, integrate);
+
