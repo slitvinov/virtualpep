@@ -2,7 +2,6 @@ kill(all);
 reset();
 load("sumalg.mac")$
 
-
 /* original version was from Barton Willis
 http://www.math.utexas.edu/pipermail/maxima/2011/025600.html */
 ibyparts(ii,f) := block ([gp,x,igp,lo,hi,partswitch : true],
@@ -12,13 +11,24 @@ ibyparts(ii,f) := block ([gp,x,igp,lo,hi,partswitch : true],
   lo : part(ii,3),
   hi : part(ii,4), 
   igp : integrate(gp,x),
-  if lo # 'end then 
-     at(igp * f,x=hi) - at(igp * f,x=lo) - integrate(igp *  diff(f,x),x,lo,hi)
+  if lo # 'end then
+   /* at(igp * f,x=hi) - at(igp * f,x=lo) - integrate(igp *  diff(f,x),x,lo,hi) */  
+  - integrate(igp *  diff(f,x),x,lo,hi)
   else  igp * f -  integrate(igp *  diff(f,x),x))$
-
 
 declare(cartesianvector, feature);
 cartesianvectorp(expr):= featurep(expr, cartesianvector);
+
+/* switching 'x<->1, 'y<->2, 'z<->3 */
+clist: ['x, 'y, 'z];
+c2i(c):= first(sublist_indices(clist, lambda([q], q=c)));
+i2c(i):= clist[i];
+
+c2matrix(A, al, be):= genmatrix(lambda([i,j], subst([al=i2c(i), be=i2c(j)], A)), length(clist), length(clist));
+load ("nchrpl");
+matrix2diagandtraceless(A):= block([n: length(A), e],
+  e: 1/n*mattrace(A)*ident(n),
+  [e, A-e]);
 
 simp: false;
 matchdeclare(rr, cartesianvectorp);
@@ -31,14 +41,14 @@ matchdeclare(rrc,lambda([q], q='Rc));
 /* http://en.wikipedia.org/wiki/Spherical_coordinate_system#Integration_and_differentiation_in_spherical_coordinates */
 defrule(cartesian2sphericalX, rr[xx], rr['Rs]*sin(rr['theta])*cos(rr['phi]));
 defrule(cartesian2sphericalY, rr[yy], rr['Rs]*sin(rr['theta])*sin(rr['phi]));
-defrule(cartesian2sphericalZ, rr[zz], rr['Rs]*cos(rr['phi]));
+defrule(cartesian2sphericalZ, rr[zz], rr['Rs]*cos(rr['theta]));
 defrule(cartesian2sphericalR, rr[rrc],rr['Rs]);
 defrule(cartesian2sphericalInt, SpherVolumeIntegral(intexpr, rr, radius),
   'integrate('integrate('integrate(
         intexpr * rr['Rs]^2 * sin(rr['theta]),
         rr['phi], 0, 2*%pi),
       rr['theta], 0, %pi),
-    rr['Rs], 0, radius));
+    rr['Rs], 0, radius))$
 simp: true;
 
 cartesian2spherical(expr):= apply1(expr, cartesian2sphericalX,
@@ -52,3 +62,81 @@ apply1(SpherVolumeIntegral(rp['x], rp, z), cartesian2sphericalInt);
 cartesian2spherical(SpherVolumeIntegral(rp['x]^2, rp, h));
 ev(%, integrate);
 
+expr: diff(w(r), r);
+
+simp: false;
+matchdeclare(nn, all);
+matchdeclare(aa, freeof(rr));
+matchdeclare(mm, freeof(rr));
+defmatch(find_dw, 'diff(w(rr), rr, nn)*aa*rr^mm,          rr);
+defmatch(find_w,  w(rr)*aa*rr^mm,                         rr);
+simp: true;
+
+declare(vpep_simplw_aux, evfun);
+vpep_simplw(expr):= ev(expr, vpep_simplw_aux, infeval);
+vpep_simplw_aux(expr):= opsubst(integrate=lambda([[arg]],
+    block([gp: part(arg, 1), var : part(arg,2), lo : part(arg,3), hi : part(arg,4)],
+      if hi='h and lo=0 then block([wparts: find_w(gp, var), devwpart: find_dw(gp, var)],
+        if wparts#false and assoc('mm, wparts)=2 then 1/(4*%pi)
+        else if devwpart#false then ibyparts(integrate(gp, var, lo, hi), var^assoc('mm, devwpart))
+        else integrate(gp, var, lo, hi))
+      else integrate(gp, var, lo, hi))),
+    expr)$
+
+assume(h>0);
+
+vpep_simplw(integrate(w(x)*x^2, x, 0, h));
+
+F(r):= - diff(w(r), r)/r;
+
+/* normalization of the kernel */
+cartesian2spherical(SpherVolumeIntegral(w(rp['Rc]), rp, h));
+ev(%, integrate);
+vpep_simplw(%);
+
+/* (A1) */
+for i in ['x, 'y, 'z] do
+for j in ['x, 'y, 'z] do (
+  cs: cartesian2spherical(SpherVolumeIntegral(  F(rp['Rc])*rp[i]*rp[j] , rp, h)),
+  cs: ev(cs, integrate),
+  print([i, j, vpep_simplw(cs)])
+  );
+
+/* (A3), the first equation */
+cartesian2spherical(SpherVolumeIntegral(  lsum(F(rp['Rc])*rp[i]*rp[i], i, ['x, 'y, 'z]) , rp, h))$
+ev(%, integrate);
+vpep_simplw(%);
+
+/* (A4), the second equation */
+vpep_simplw( integrate(F(r)*r^4,               r, 0, h) );
+
+/* make sure the third order tensor is zero */
+for al in ['x, 'y, 'z] do
+for be in ['x, 'y, 'z] do
+for alp in ['x, 'y, 'z] do (
+  cs: cartesian2spherical(SpherVolumeIntegral(  F(rp['Rc])*rp[al]*rp[be]*rp[alp]/rp['Rc]^2 , rp, h)),
+  ev(cs, integrate),
+  print([al, be, alp, vpep_simplw(cs)]));
+
+/* forth order tensor */
+for al in ['x, 'y, 'z] do
+for be in ['x, 'y, 'z] do
+for alp in ['x, 'y, 'z] do
+for bep in ['x, 'y, 'z] do (
+  cs: cartesian2spherical(SpherVolumeIntegral(  F(rp['Rc])*rp[al]*rp[be]*rp[alp]*rp[bep]/rp['Rc]^2 , rp, h)),
+  ev(cs, integrate),
+  Q[al,be,alp,bep]: vpep_simplw(cs),
+  print([al, be, alp, bep, Q[al,be,alp,bep]]));
+
+/* dA[alp, bep] represents partieal derivative of the field A with respect to coordinte 
+contract dA[alp,bep] with  Q */
+declare(dA, symmetric);
+
+s: 0;
+for alp in ['x, 'y, 'z] do
+for bep in ['x, 'y, 'z] do
+s: s + dA[alp,bep]*Q[al,be,alp,bep];
+
+/* Eq. (A7) */
+aux: c2matrix(s, al, be)$
+aux: ev(aux);
