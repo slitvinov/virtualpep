@@ -88,7 +88,10 @@ vpep_substindex([vars]):=subst('SU=lambda([[l]],
 
 compfun(p, q, summand):=if p[2]=q[2] and p[3]=q[3] then
       orderlessp(posinexpr(p[1], summand), posinexpr(q[1], summand))
-      else if p[3]=q[3] then orderlessp(p[2], q[2]) else orderlessp(p[3], q[3]);
+      else if p[3]=q[3] then vpep_orderlessp(p[2], q[2]) else vpep_orderlessp(p[3], q[3]);
+
+vpep_orderlessp(a, b):=block([sa: sdowncase(string(a)), sb: sdowncase(string(b))],
+  if sa=sb then orderlessp(a, b) else orderlessp(sa, sb));
 
 /* makes every index unique */
 vpep_bashindices(expr):= subst('SU=lambda([[l]],
