@@ -6,8 +6,8 @@ http://link.aps.org/doi/10.1103/PhysRevE.67.026705
 The thermal noise of eq. (49) acts on every pair of particles
 independently and with opposite signs on the two particles, so the
 dissipative matrix M is a sum of pair blocks. The scripts compute one
-block with explicit components and check (B3), the drift with
-k_B dM/dx in eq. (63), and energy conservation (65).
+block with explicit components and check (B3), momentum conservation,
+the drift with k_B dM/dx in eq. (63), and energy conservation (65).
 
 - [[file:pair3.mac]]: three dimensions, as in the paper
 - [[file:pair2.mac]]: two dimensions; in eq. (63) a/3 + b becomes b and

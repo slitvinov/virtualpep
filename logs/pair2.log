@@ -2,56 +2,46 @@ batch("pair2.mac")
 
 n:2
 assume(kB > 0,m > 0,a > 0,b > 0,kappa > 0,f > 0,Ti > 0,Tk > 0)
-e:genmatrix(lambda([r,c],ee[r]),n,1)
-vi:genmatrix(lambda([r,c],ui[r]),n,1)
-vk:genmatrix(lambda([r,c],uk[r]),n,1)
-v:vi-vk
-unit(ex):=ratsimp(ratsubst(1-sum(ee[r]^2,r,1,n-1),ee[n]^2,expand(ex)))
-dot(p,q):=sum(p[r,1]*q[r,1],r,1,n)
-dW:genmatrix(lambda([r,c],w[r,c]),n,n)
-tr:sum(dW[r,r],r,1,n)
-dWbar:(dW+transpose(dW))/2-(tr/n)*ident(n)
-X:A*dWbar+((B*tr)/n)*ident(n)
-Xev:sum(sum(X[r,c]*e[r,1]*v[c,1],r,1,n),c,1,n)
-dvi:X . e/m
-dSi:((-Xev)/2+C*dV)/Ti
-dSk:((-Xev)/2-C*dV)/Tk
-xi:append(makelist(dvi[r,1],r,1,n),makelist(-dvi[r,1],r,1,n),[dSi,dSk])
-nx:length(xi)
-noises:append(create_list(w[r,c],r,1,n,c,1,n),[dV])
-ito(ex):=block([ex:expand(ex)],lsum(coeff(ex,s,2),s,noises))
-Q:genmatrix(lambda([r,c],ito(xi[r]*xi[c])),nx,nx)
-B3:genmatrix(lambda([r,c],
-                    (A^2/2)*(kron_delta(r,c)+e[r,1]*e[c,1])
-                     +((B^2-A^2)/n)*e[r,1]*e[c,1]),n,n)
-unit(m^2*genmatrix(lambda([r,c],Q[r,c]),n,n)-B3)
+gradef(Ti,Si,Ti/Ci)
+gradef(Tk,Sk,Tk/Ck)
+gradef(Ei,Si,Ti)
+gradef(Ek,Sk,Tk)
+unit(ex):=ratsimp(subst(e[n]^2 = 1-sum(e[c]^2,c,1,n-1),expand(ex)))
+v[c]:=vi[c]-vk[c]
+ve:sum(e[c]*v[c],c,1,n)
+vv:sum(v[c]^2,c,1,n)
+tr:sum(w[c,c],c,1,n)
+X[c,d]:=A*((w[c,d]+w[d,c])/2-(kron_delta(c,d)*tr)/n)+(B*kron_delta(c,d)*tr)/n
+dv[c]:=sum(X[c,d]*e[d],d,1,n)/m
+Xev:sum(sum(X[c,d]*e[c]*v[d],c,1,n),d,1,n)
+x:append(makelist(vi[c],c,1,n),makelist(vk[c],c,1,n),[Si,Sk])
+dx:append(makelist(dv[c],c,1,n),makelist(-dv[c],c,1,n),
+          [((-Xev)/2+C*dV)/Ti,((-Xev)/2-C*dV)/Tk])
+nx:length(x)
+ito(ex):=block([ex:expand(ex)],
+    sum(sum(coeff(ex,w[c,d],2),c,1,n),d,1,n)+coeff(ex,dV,2))
+Q:genmatrix(lambda([r,s],ito(dx[r]*dx[s])),nx,nx)
+B3:unit(genmatrix(lambda([r,s],
+                         m^2*Q[r,s]-(A^2/2)*(kron_delta(r,s)+e[r]*e[s])
+                                   +((-(B^2-A^2))/n)*e[r]*e[s]),n,n))
                                    [ 0  0 ]
                                    [      ]
                                    [ 0  0 ]
-amp:[A = sqrt((8*kB*a*Ti*Tk)/(Ti+Tk)),B = sqrt((8*kB*b*Ti*Tk)/(Ti+Tk)),
-     C = sqrt(4*kappa*kB*f*Ti*Tk)]
-Q:ratsimp(subst(amp,Q))
+Q:ratsimp(subst([A^2 = (8*kB*a*Ti*Tk)/(Ti+Tk),B^2 = (8*kB*b*Ti*Tk)/(Ti+Tk),
+                 C^2 = 4*kappa*kB*f*Ti*Tk],Q))
 M:Q/(2*kB)
-xv:append(makelist(ui[r],r,1,n),makelist(uk[r],r,1,n))
-D(ex,c):=if c <= 2*n then diff(ex,xv[c])
-   else (if c = 2*n+1 then (Ti/Csi)*diff(ex,Ti) else (Tk/Csk)*diff(ex,Tk))
-dSdx:append(makelist(0,2*n),[1,1])
-drift:makelist(sum(M[r,c]*dSdx[c]+kB*D(M[r,c],c),c,1,nx),r,1,nx)
-d:((Ti*Tk)/(Ti+Tk)^2)*(kB/Csi+kB/Csk)
-ev:dot(e,v)
-vv:dot(v,v)
-mdv:(-(1-d))*(a*v+b*ev*e)
-TdS:(1/2)*(1-d+(((-Tk)/(Ti+Tk))*kB)/Csi)*(a*vv+b*ev^2)
-    -((((2*kB)/m)*Ti*Tk)/(Ti+Tk))*(2*a+b)+(-2)*kappa*f*(Ti-Tk)
-    +(((-2)*kappa*kB)/Csi)*f*Tk
-makelist(unit(m*drift[r]-mdv[r,1]),r,1,n)
+S:Si+Sk
+drift:makelist(sum(M[r,s]*diff(S,x[s])+kB*diff(M[r,s],x[s]),s,1,nx),r,1,nx)
+P:unit(makelist(drift[c]+drift[n+c],c,1,n))
                                     [0, 0]
-makelist(unit(m*drift[r+n]+mdv[r,1]),r,1,n)
+d:((Ti*Tk)/(Ti+Tk)^2)*(kB/Ci+kB/Ck)
+vdrift:unit(makelist(m*drift[c]+(1-d)*(a*v[c]+b*ve*e[c]),c,1,n))
                                     [0, 0]
-unit(Ti*drift[2*n+1]-TdS)
+Sdrift:unit(Ti*drift[2*n+1]-(1/2)*(1-d+(((-Tk)/(Ti+Tk))*kB)/Ci)*(a*vv+b*ve^2)
+                           +((((2*kB)/m)*Ti*Tk)/(Ti+Tk))*(2*a+b)
+                           +2*kappa*f*(Ti-Tk)+((2*kappa*kB)/Ci)*f*Tk)
                                        0
-dE:m*sum(vi[r,1]*drift[r]+vk[r,1]*drift[r+n],r,1,n)
-   +Ti*drift[2*n+1]+Tk*drift[2*n+2]
-   +(m*sum(Q[r,r],r,1,2*n)+(Ti/Csi)*Q[2*n+1,2*n+1]+(Tk/Csk)*Q[2*n+2,2*n+2])/2
-unit(dE)
+E:(m/2)*sum(vi[c]^2+vk[c]^2,c,1,n)+Ei+Ek
+dE:unit(sum(diff(E,x[r])*drift[r],r,1,nx)
+         +(1/2)*sum(sum(diff(E,x[r],1,x[s],1)*Q[r,s],r,1,nx),s,1,nx))
                                        0
