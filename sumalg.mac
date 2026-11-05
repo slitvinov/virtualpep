@@ -113,7 +113,7 @@ vpep_incrcontainer_inside(expr):= subst('SCONTAINER=lambda([scounter, el],
 expr);
 
 /* lo, hi, nestlevel, increase */
-vpep_userindex[other, other, other, other]:=false;
+vpep_userindex[o1, o2, o3, o4]:=false;
 %SIMP_CANONICAL_PREFIX: 'p;
 vpep_genindex(lo, hi, nestlevel, totalinumber, inumber):= block([udef: vpep_userindex[lo, hi, nestlevel, inumber]],
   if udef#false then udef else
@@ -437,7 +437,7 @@ block([simp: false],
   defrule(rvpep_withkron2, kron_delta(ii,jj)*pp, vpep_subst(jj=ii, pp)*kron_delta(ii,jj)));
 
 /* diff of the expression with respect to the functions and subscripted variables */
-vpep_table[otherwise,otherwise]:= false;
+vpep_table[o1, o2]:= false;
 
 /* lookups a derivative in a table */
 %DEBUG_TABLE%: false;
