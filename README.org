@@ -1,111 +1,22 @@
 * Introduction
-Derivation SDPD equations (by P. Espanol and M. Revenga).
+Derivation of the smoothed dissipative particle dynamics (SDPD)
+equations of P. Espanol and M. Revenga, Phys. Rev. E 67, 026705 (2003),
+http://link.aps.org/doi/10.1103/PhysRevE.67.026705
 
-Main file is [[file:onerun.mac]]. See also examples in [[file:b1.mac]]
+The thermal noise of eq. (49) acts on every pair of particles
+independently and with opposite signs on the two particles, so the
+dissipative matrix M is a sum of pair blocks. The scripts compute one
+block with explicit components and check (B3), the drift with
+k_B dM/dx in eq. (63), and energy conservation (65).
 
-[1] http://link.aps.org/doi/10.1103/PhysRevE.67.026705
+- [[file:pair3.mac]]: three dimensions, as in the paper
+- [[file:pair2.mac]]: two dimensions; in eq. (63) a/3 + b becomes b and
+  10 a/3 + b becomes 2 a + b, with b = B^2 (1/T_i + 1/T_j)/(8 k_B)
 
-[2] https://sites.google.com/site/pepespanol
-
-* Installation
-Clone the repository
+* Run
 #+BEGIN_SRC sh
-git clone https://github.com/slitvinov/virtualpep.git
+maxima --very-quiet -b pair3.mac
+maxima --very-quiet -b pair2.mac
 #+END_SRC
 
-* Testing
-Run the following shell commands from the directory with the package
-#+BEGIN_SRC sh
-maxima -r "batch(\"rtest_sumalg.mac\", 'test);"
-#+END_SRC
-
-#+BEGIN_SRC sh
-maxima -r "batch(\"rtest_sdpd.mac\", 'test);"
-#+END_SRC
-
-If tests fail send me the corresponding *.ERR file which must be in
-the same directory.
-
-Run [[file:onerun.mac]] in batch mode and keep log file
-#+BEGIN_SRC sh
-maxima -b onerun.mac | tee local.log
-#+END_SRC
-Compare it with the reference logs in [[file:logs][`log' directory]]. I do not expect
-an exact match but if in reference file the result is zero you should
-get zero. For example:
-#+BEGIN_EXAMPLE
-                    2
-                   m  dvdv
-(%i16) fullratsimp(-------
-                     dt
-                        - vpep_outative(vpep_fullexpand(sum2sumel(dvdv_book))))
-(%o16)                                 0
-#+END_EXAMPLE
-
-
-If last lines are the following it is probably OK.
-#+BEGIN_EXAMPLE
-(%i83)               m_dsds_sb : arrange_dsds3(m_dsds_sb)
-           Np
-          ====
-          \            T(j) kb
-(%o83) - ( >    (------------------- + d(i, j))
-          /      Cs(i) (T(j) + T(i))
-          ====
-          j = 1
-                                                                 """"""""""""
-  (a(i, j) (ndim - 2) + 3 b(i, j)) vte                           "c(i, i) kb"
- (------------------------------------ + a(i, j) v2))/(2 T(i)) + "----------"
-                  ndim                                           "  Cs(i)   "
-                                                                 """"""""""""
-     Np
-    ====
-    \
-   ( >    c(i, j) T(j)) kb
-    /
-    ====
-    j = 1
- - -----------------------
-         Cs(i) T(i)
-#+END_EXAMPLE
-
-* Troubleshooting
-I tested the following versions of maxima. If you have problems with a
-setup try to update/downgrade.
-#+BEGIN_EXAMPLE
-Maxima version: "branch_5_31_base_137_g08d9811"
-Maxima build date: "2013-11-18 17:41:41"
-Host type: "x86_64-unknown-linux-gnu"
-Lisp implementation type: "SBCL"
- Lisp implementation version: "1.1.1.0.debian"
-#+END_EXAMPLE
-
-#+BEGIN_EXAMPLE
-Maxima version: "5.29.1"
-Maxima build date: "2012-12-29 23:14:09"
-Host type: "x86_64-unknown-linux-gnu"
-Lisp implementation type: "GNU Common Lisp (GCL)"
-Lisp implementation version: "GCL 2.6.7"
-#+END_EXAMPLE
-* Usage
-Run step by step commands in [[file:b1.mac]], it is computing preliminary
-results (B1) and (B2) from appendix. Then run [[file:onerun.mac]] file.
-* Files
-[[file:b1.mac][b1.mac]] :: compute preliminary results
-
-[[file:onerun.mac][onerun.mac]] :: derive SDPD equations
-
-[[file:rtest_sdpd.mac][rtest_sdpd.mac]] :: tests for sdpd
-
-[[file:rtest_sumalg.mac][rtest_sumalg.mac]] :: tests for sumalg
-
-[[file:sdpd-assume.mac][sdpd-assume.mac]] :: SDPD assumptions
-
-[[file:sdpd-book.mac][sdpd-book.mac]] :: reference formulas from the paper
-
-[[file:sdpd-garbage.mac][sdpd-garbage.mac]] :: a collection of helper functions
-
-[[file:sdpd-rules.mac][sdpd-rules.mac]] :: rules for SDPD
-
-[[file:sumalg.mac][sumalg.mac]] :: a package to work with nested sums
-
+Every check prints zero, see [[file:logs/pair3.log]] and [[file:logs/pair2.log]].
