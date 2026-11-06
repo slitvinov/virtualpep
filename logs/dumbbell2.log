@@ -1,0 +1,42 @@
+batch("dumbbell2.mac")
+
+n:2
+assume(kB > 0,m > 0,H > 0,zeta > 0,T > 0,Ti > 0,Tj > 0,di > 0,dj > 0,Fij > 0)
+unit(ex):=ratsimp(expand(ex))
+gradef(T,S,T/C)
+gradef(E,S,T)
+x:append(makelist(Q[c],c,1,n),[S])
+dx:append(makelist(sqrt((2*kB*T)/zeta)*w[c],c,1,n),
+          [((-H)*sum(Q[c]*sqrt((2*kB*T)/zeta)*w[c],c,1,n))/T])
+nx:length(x)
+ito(ex):=block([ex:expand(ex)],sum(coeff(ex,w[c],2),c,1,n))
+Q2:genmatrix(lambda([r,s],ito(dx[r]*dx[s])),nx,nx)
+M:Q2/(2*kB)
+drift:makelist(sum(M[r,s]*diff(S,x[s])+kB*diff(M[r,s],x[s]),s,1,nx),r,1,nx)
+relax:unit(makelist(drift[c]+(H/zeta)*Q[c],c,1,n))
+                                    [0, 0]
+heat:unit(T*drift[n+1]-((H^2/zeta)*sum(Q[c]^2,c,1,n)*(1-kB/C)
+                       -(n*H*kB*T)/zeta))
+                                       0
+Etot:(H/2)*sum(Q[c]^2,c,1,n)+E
+dE:unit(sum(diff(Etot,x[r])*drift[r],r,1,nx)
+         +(1/2)*sum(sum(diff(Etot,x[r],1,x[s],1)*Q2[r,s],r,1,nx),s,1,nx))
+                                       0
+Qeq:solve(ratsubst(q2,sum(Q[c]^2,c,1,n),
+                   expand(2*sum(Q[c]*drift[c],c,1,n)+sum(Q2[c,c],c,1,n))),q2)
+                                       2 T kB
+                                 [q2 = ------]
+                                         H
+rij:makelist(r[c],c,1,n)
+vij:makelist(vi[c]-vj[c],c,1,n)
+rQ(q):=sum(r[c]*q[c],c,1,n)
+Qi:makelist(qi[c],c,1,n)
+Qj:makelist(qj[c],c,1,n)
+dQi:(Fij/di)*vij*rQ(Qi)
+dQj:(Fij/dj)*vij*rQ(Qj)
+fi:(-H)*Fij*((Qi*rQ(Qi))/di+(Qj*rQ(Qj))/dj)
+momentum:unit(fi-fi)
+                                    [0, 0]
+energy:unit(sum(vi[c]*fi[c]-vj[c]*fi[c],c,1,n)
+             +H*sum(Qi[c]*dQi[c]+Qj[c]*dQj[c],c,1,n))
+                                       0

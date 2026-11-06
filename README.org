@@ -13,6 +13,31 @@ the drift with k_B dM/dx in eq. (63), and energy conservation (65).
 - [[file:pair2.mac]]: two dimensions; in eq. (63) a/3 + b becomes b and
   10 a/3 + b becomes 2 a + b, with b = B^2 (1/T_i + 1/T_j)/(8 k_B)
 
+- [[file:dumbbell2.mac]], [[file:dumbbell3.mac]]: Hookean dumbbell
+  (Oldroyd-B) per particle in GENERIC form: relaxation, heating,
+  energy conservation, equilibrium <Q^2> = n k_B T/H, and the
+  reversible coupling with the polymer stress
+
+* SDPD in C
+[[file:sdpd2.c]] and [[file:sdpd3.c]] integrate eq. (63) with OpenMP:
+velocity Verlet for the pressure forces and a pair-by-pair update of
+friction, noise and heat that conserves momentum and energy exactly.
+Cells are colored so that pair updates run in parallel. The kernel is
+Lucy, or Wendland C2 with -DWENDLAND.
+
+#+BEGIN_SRC sh
+make CC=gcc
+./sdpd2 shear|sound|rest h rows eta zeta kappa kB dt steps every
+sh run.sh
+maxima -b theory.mac
+python3 plot.py
+#+END_SRC
+
+run.sh measures the viscosity from the decay of a shear wave and the
+sound speed from a sound wave as a function of lambda/h, as in Figs. 2
+and 3 of the paper; theory.mac gives the linear response of the
+discrete operators.
+
 * Run
 #+BEGIN_SRC sh
 maxima --very-quiet -b pair3.mac
