@@ -1,0 +1,38 @@
+/* Metropolized pair updates for 3D SDPD with the ideal gas, T = e/C.
+At fixed positions a pair (i, j) has the invariant measure
+nu = exp((Si + Sj)/kB)/(Ti Tj) with S = C log(e), see Faure and
+Stoltz, arXiv:1707.04232, eq. (21). Two elementary moves keep the
+pair energy and momentum:
+  friction along one direction, du = -l u dt + sqrt(2 D) dW, with the
+    internal energies ei = ei0 - (u^2 - u0^2)/8 (and the same for ej);
+  heat exchange, dei = -2 kappa f (Ti - Tj) dt + sqrt(4 kappa kB f Ti Tj) dW,
+    with ej = E - ei.
+For each move we check that the probability flux vanishes in nu and
+derive the log acceptance of the Metropolis-Hastings correction. */
+
+assume(kB > 0, C > 0, f > 0, kappa > 0, g > 0, ei > 0, ej > 0, E > 0)$
+lognu(ei, ej):= (C*log(ei) + C*log(ej))/kB - log(ei/C) - log(ej/C)$
+flux(b, s2, x, lnu):= ratsimp(exp(-lnu)*(b*exp(lnu) - diff(s2*exp(lnu), x)/2))$
+
+/* friction along one direction with d = kB Ti Tj/(Ti + Tj)^2 (1/C + 1/C) */
+T(e):= e/C$
+Ei: e1 - (u^2 - u0^2)/8$
+Ej: e2 - (u^2 - u0^2)/8$
+tt: T(Ei)*T(Ej)/(T(Ei) + T(Ej))$
+d: kB*T(Ei)*T(Ej)/(T(Ei) + T(Ej))^2*2/C$
+friction: flux(-2*(1 - d)*g*u, 2*8*g*kB*tt, u, lognu(Ei, Ej));
+
+/* heat exchange */
+heat: flux(-2*kappa*f*(T(x) - T(E - x)), 4*kappa*kB*f*T(x)*T(E - x), x, lognu(x, E - x));
+
+/* log acceptance of a Gaussian proposal x' = x + b(x) dt + s(x) G:
+   log nu(x') - log nu(x) + log q(x' -> x) - log q(x -> x') */
+loga(lnu1, lnu0, x0, x1, b1, s1, s0, G):=
+  lnu1 - lnu0 - (x0 - x1 - b1)^2/(2*s1^2) - log(s1) + G^2/2 + log(s0)$
+
+/* the exact OU step of the friction is also a Gaussian proposal:
+   u' = a u + s G with a = exp(-l dt), s^2 = V (1 - a^2), V = 4 kB tt/(1 - d);
+   its reverse uses a, s at the new energies, so the move is exact only
+   when tt and d do not change */
+V: 4*kB*tt/(1 - d)$
+taylor(subst([u = u0], V), kB, 0, 1);

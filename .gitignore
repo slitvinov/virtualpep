@@ -1,7 +1,7 @@
 sdpd2
 sdpd3
-sdpd2w
-sdpd3w
+sdpd2l
+sdpd3l
 sdpd2n
 sdpd2s
 sdpd3s
@@ -14,3 +14,10 @@ old-sweep
 sdpd2d
 sdpd3d
 sdpd3cu
+sdpd3b
+__pycache__/
+lattice3
+modes3
+pairtest
+sdpd2w
+sdpd3w

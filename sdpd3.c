@@ -8,7 +8,7 @@ static double h, Lx, Ly, Lz, eta, zeta, kappa, kB, dt;
 static uint64_t tick;
 static double *x, *y, *z, *vx, *vy, *vz, *S, *d, *T, *P, *ax, *ay, *az;
 
-#ifdef WENDLAND
+#ifndef LUCY
 static double W(double r) {
   double q = r / h, s = 1 - q;
   return 21 / (2 * M_PI * h * h * h) * (1 + 4 * q) * s * s * s * s;

@@ -1,88 +1,159 @@
-* Introduction
-Derivation of the smoothed dissipative particle dynamics (SDPD)
-equations of P. Espanol and M. Revenga, Phys. Rev. E 67, 026705 (2003),
-http://link.aps.org/doi/10.1103/PhysRevE.67.026705
+* What this is
+This repo derives and runs smoothed dissipative particle dynamics
+(SDPD) from P. Español and M. Revenga, Phys. Rev. E 67, 026705 (2003),
+http://link.aps.org/doi/10.1103/PhysRevE.67.026705.
 
-The thermal noise of eq. (49) acts on every pair of particles
-independently and with opposite signs on the two particles, so the
-dissipative matrix M is a sum of pair blocks. The scripts compute one
-block with explicit components and check (B3), momentum conservation,
-the drift with k_B dM/dx in eq. (63), and energy conservation (65).
+The derivations are in Maxima, the simulations are in C and CUDA, and
+the error bars come from a small Python module. Every equation the
+codes use is checked in Maxima first, and every code path is checked
+against a small test or an exact result.
 
-- [[file:pair3.mac]]: three dimensions, as in the paper
-- [[file:pair2.mac]]: two dimensions; in eq. (63) a/3 + b becomes b and
-  10 a/3 + b becomes 2 a + b, with b = B^2 (1/T_i + 1/T_j)/(8 k_B)
+* The derivation
+The thermal noise acts on each pair of particles on its own, with
+opposite signs on the two particles. So the dissipative matrix is a
+sum of pair blocks, and one pair is all we need to check. The scripts
+build that block, then confirm momentum conservation, energy
+conservation and the drift term that the noise requires. Every check
+prints zero.
 
-- [[file:dumbbell2.mac]], [[file:dumbbell3.mac]]: Hookean dumbbell
-  (Oldroyd-B) per particle in GENERIC form: relaxation, heating,
-  energy conservation, equilibrium <Q^2> = n k_B T/H, and the
-  reversible coupling with the polymer stress
-
-* SDPD in C
-[[file:sdpd2.c]] and [[file:sdpd3.c]] integrate eq. (63) with OpenMP:
-velocity Verlet for the pressure forces and a pair-by-pair update of
-friction, noise and heat that conserves momentum and energy exactly.
-Cells are colored so that pair updates run in parallel. The kernel is
-Lucy, or Wendland C2 with -DWENDLAND.
+| file             | what it checks                                       |
+|------------------+------------------------------------------------------|
+| pair3.mac        | the pair block in three dimensions, as in the paper   |
+| pair2.mac        | the same in two dimensions                            |
+| dumbbell3.mac    | a Hookean dumbbell on each particle, in GENERIC form  |
+| dumbbell2.mac    | the same in two dimensions                            |
+| equipartition.mac| the exact equilibrium of N particles                  |
+| metropolis.mac   | that each pair move keeps the right equilibrium       |
+| modes.mac        | damping of shear, sound and heat waves, continuum     |
+| lattice.mac      | the same waves on the actual fcc lattice, exact sums  |
 
 #+BEGIN_SRC sh
-make CC=gcc
-./sdpd2 shear|sound|rest h rows eta zeta kappa kB dt steps every [amp dumpevery]
-sh run.sh
-maxima -b theory.mac
-python3 plot.py
+maxima --very-quiet -b pair3.mac
 #+END_SRC
 
-run.sh measures the viscosity from the decay of a shear wave and the
-sound speed from a sound wave as a function of lambda/h, as in Figs. 2
-and 3 of the paper; theory.mac gives the linear response of the
-discrete operators.
+The logs are in [[file:logs]].
+
+* The CPU codes
+[[file:sdpd2.c]] and [[file:sdpd3.c]] run SDPD with OpenMP. Pressure
+forces use velocity Verlet. Friction, noise and heat go pair by pair,
+so momentum and energy are conserved exactly. The kernel is Wendland
+C2; build with -DLUCY for the Lucy kernel.
+
+#+BEGIN_SRC sh
+make
+./sdpd3 shear|sound|rest h rows eta zeta kappa kB dt steps every [amp dumpevery]
+#+END_SRC
+
+run.sh measures viscosity from a decaying shear wave and sound speed
+from a sound wave, like Figs. 2 and 3 of the paper, and plot.py puts
+them next to the theory from theory.mac. In 2D it matches all the way.
+In 3D it matches until the wavelength gets long compared to the narrow
+box.
 
 [[file:sdpd2.svg]]
 
 [[file:sdpd3.svg]]
 
-With two extra arguments, amp and dumpevery, the programs write LAMMPS
-dump files. A shear wave decaying into thermal fluctuations, colored
-by v_x:
-
-#+BEGIN_SRC sh
-./sdpd2 shear 3 32 1 0 0 1e-4 0.02 3000 100 0.05 20
-./sdpd3 shear 3 32 1 0 0 1e-4 0.02 2500 100 0.05 20
-#+END_SRC
+With amp and dumpevery the codes write LAMMPS dumps. Here a shear wave
+fades into thermal noise, colored by v_x:
 
 [[file:img/sdpd2.gif]]
 
 [[file:img/sdpd3.gif]]
 
-* Equipartition
-[[file:equipartition.mac]] gives the exact equilibrium of N particles at
-fixed energy and zero momentum: <m v_a^2>/<kB T> = (N - 1)/N and
-<dT^2>/<T>^2 -> kB/C_v, see [[file:logs/equipartition.log]]. With kB =
-0.01 the simulations give 0.98706 +- 0.00057 for N = 72 in 2D (theory
-0.98611) and 0.99597 +- 0.00038 for N = 256 in 3D (theory 0.99609), and
-<dT^2>/<T>^2 = 0.00999 +- 0.00011 for N = 90 in 2D (theory 0.00989).
-
-* CUDA
-[[file:sdpd3.cu]] is the 3D solver on the GPU with the same arguments
-and output as sdpd3.c; a negative dumpevery gives a cubic box without
-dumps. Particles are sorted by cell every step, one sweep builds the
-density and the neighbor lists, and the pair updates run one warp per
-cell in 27 colors, so they stay sequential and conserve energy and
-momentum exactly.
+* The GPU codes
+[[file:sdpd3.cu]] is the 3D solver on the GPU. It takes the same
+arguments and prints the same columns as sdpd3.c, plus temperature
+variance and total momentum. [[file:sdpd3b.cu]] runs many independent
+boxes in one go. Each line of its input is one box with its own size,
+parameters, time step and seed. That's how we get independent replicas
+for statistics, and it keeps the GPU busy when the boxes are small.
 
 #+BEGIN_SRC sh
-make sdpd3cu
+make sdpd3cu sdpd3b
 ./sdpd3cu rest 3 120 1 0 1 1e-2 0.01 20 1000 0 -1
+./sdpd3b < list
 #+END_SRC
 
-On a GH200 it gives 4.9e7 particle-steps/s for 864000 particles and
-7.8e7 for 6912000.
+Inside, particles get sorted by cell every step, and one pass builds
+the density and the neighbor lists. Pair updates run one warp per cell
+in 27 colors, so no two warps ever touch the same particle and the
+updates stay exact. Everything is computed on the GPU while it runs;
+the batch code writes Fourier modes of velocity, density, temperature
+and entropy to a .k file, so we never dump particles.
 
-* Run
-#+BEGIN_SRC sh
-maxima --very-quiet -b pair3.mac
-maxima --very-quiet -b pair2.mac
-#+END_SRC
+How fast it was on a GH200 (Lucy kernel, before the integrator changes
+below):
 
-Every check prints zero, see [[file:logs/pair3.log]] and [[file:logs/pair2.log]].
+| particles | particle-steps per second |
+|-----------+---------------------------|
+|    864000 | 4.9e7                     |
+|   2916000 | 6.2e7                     |
+|   6912000 | 7.8e7                     |
+
+* The integrator
+The first version did each pair's friction as an exact
+Ornstein-Uhlenbeck step and its heat exchange as a plain Euler step,
+the Shardlow-type splitting. That turned out to be slightly biased:
+temperature fluctuations came out a bit too big, and at large time
+steps internal energies could go negative.
+
+Now each pair move is a proposal that we accept or reject with a
+Metropolis-Hastings test, following G. Faure and G. Stoltz,
+arXiv:1707.04232. Their paper covers friction; we added the same
+treatment for heat conduction. metropolis.mac checks that both moves
+keep the right equilibrium, and [[file:pairtest.c]] tests one pair
+against the exact answer. The old scheme drifts off and blows up at
+large time steps; the new one stays exact:
+
+| scheme       | dt   | temperature variance vs exact | acceptance |
+|--------------+------+-------------------------------+------------|
+| old (Euler)  | 0.02 | 2.5% too high                 | -          |
+| old (Euler)  | 0.1  | fails, negative energy        | -          |
+| Metropolized | 0.02 | exact within error            | 98%        |
+| Metropolized | 0.3  | exact within error            | 91%        |
+
+(one pair, kB = 0.2, exact value from the Dirichlet distribution)
+
+Two more changes: each step is now symmetric (half a dissipation step,
+then Verlet, then the other half), and forces get recomputed after
+dissipation changes the temperatures. The order of colors and pairs is
+shuffled every step. Build with -DSSA to get the old pair update back
+for comparison.
+
+* Checking the codes
+validate.sh runs everything we know how to check:
+
+- the same run twice gives the same bits
+- a box inside a batch gives the same bits as that box run alone
+- CPU and GPU agree when there's no noise
+- energy and total momentum are conserved
+- compute-sanitizer finds no memory errors, races or sync problems
+
+* Error bars
+[[file:stats.py]] estimates errors for correlated data from
+independent replicas. It uses U. Wolff's Gamma method,
+hep-lat/0306017, for averages and functions of averages, with the
+autocorrelation taken inside each replica. Fitted quantities get a
+leave-one-replica-out jackknife with a Student t interval. A chi^2
+test checks that the replicas agree with each other. The equilibration
+time is picked like J. Chodera, J. Chem. Theory Comput. 12, 1799
+(2016). We checked it against pyerrors and pymbar, and on made-up data
+the 95% intervals cover the truth 95% of the time.
+
+* Equipartition
+With fixed total energy and zero total momentum, kinetic energy is a
+little short of kB T per degree of freedom: the exact ratio is
+(N - 1)/N. equipartition.mac also gives the size of temperature
+fluctuations. Here's how runs compare:
+
+| run                    |      N | quantity               | simulation          | exact    |
+|------------------------+--------+------------------------+---------------------+----------|
+| 2D, CPU                |     72 | <m v^2>/<kB T>         | 0.98706 +- 0.00057  | 0.98611  |
+| 3D, CPU                |    256 | <m v^2>/<kB T>         | 0.99597 +- 0.00038  | 0.99609  |
+| 3D, GPU, 64 replicas   |    256 | <m v^2>/<kB T>         | 0.996107 +- 0.000075| 0.996094 |
+| 2D, CPU                |     90 | <dT^2>/<T>^2           | 0.00999 +- 0.00011  | 0.00989  |
+| 3D, GPU, 64 replicas   |    256 | <dT^2>/<T>^2           | 0.0066546 +- 0.0000011 | 0.0066407 |
+
+The last line is the old integrator, and it's off by 13 sigma. That
+miss is what sent us to the Metropolized scheme.
