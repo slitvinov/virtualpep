@@ -11,7 +11,7 @@
 struct Param {
   double h, h2, hinv, Lx, Ly, Lz, Lxi, Lyi, Lzi, eta, zeta, kappa, kB, dt, cw, cf, ca, cb, amp, kw;
   uint64_t seed;
-  int ncx, ncy, ncz, n, cell, mode;
+  int ncx, ncy, ncz, n, cell, mode, off;
 };
 static __constant__ Param cs[MAXB];
 static __constant__ int cn, nbox, wb[MAXB + 1];
@@ -402,6 +402,31 @@ __global__ void diag(const int *bx, const double4 *p, const double4 *v, const do
     }
 }
 
+__global__ void vput(const int *bx, const int *id, const double4 *v, double4 *vbuf, int slot) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < cn)
+    vbuf[(size_t)slot * cn + cs[bx[i]].off + id[i]] = v[i];
+}
+
+__global__ void vdot(const int *bx, const int *id, const double4 *v, const double4 *vbuf,
+                     int now, int nfill, int nl, double *vval) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i >= cn)
+    return;
+  size_t g = cs[bx[i]].off + id[i];
+  double4 vi = v[i];
+  for (int l = 0; l < nfill; l++) {
+    double4 u = vbuf[(size_t)((now - l + nl) % nl) * cn + g];
+    vval[(size_t)l * cn + i] = fma(vi.x, u.x, fma(vi.y, u.y, vi.z * u.z));
+  }
+}
+
+__global__ void vadd(int m, const double *a, double *b) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < m)
+    b[i] += a[i];
+}
+
 static int n, nb, ncells, bits, B, nw;
 static double4 *p, *v, *a, *p2, *v2;
 static double *S, *S2, *d, *val, *sum;
@@ -478,9 +503,13 @@ int main(int argc, char **argv) {
   Param hc[MAXB];
   cudaEvent_t t0, t1;
   float ms;
-  if (argc != 1) {
+  int vevery = 0, nl = 0, vstart = 0, ns = 0;
+  if (argc == 4)
+    vevery = atoi(argv[1]), nl = atoi(argv[2]), vstart = atoi(argv[3]);
+  if (argc != 1 && !(argc == 4 && vevery > 0 && nl > 0)) {
     fprintf(stderr,
-            "usage: %s < list\n"
+            "usage: %s [vacf_every vacf_lags vacf_start] < list\n"
+            "vacf samples at steps where every box writes output\n"
             "each line: out shear|sound|heat|rest h rows eta zeta kappa kB dt steps every "
             "[amp cube [seed]]\n",
             argv[0]);
@@ -531,7 +560,7 @@ int main(int argc, char **argv) {
     ncells += c.ncx * c.ncy * c.ncz;
     hwb[B] = nw;
     nw += c.ncx / 3 * (c.ncy / 3) * (c.ncz / 3);
-    off[B] = n;
+    off[B] = c.off = n;
     n += c.n;
     if (steps[B] > maxsteps)
       maxsteps = steps[B];
@@ -603,6 +632,29 @@ int main(int argc, char **argv) {
     cub::DeviceSegmentedReduce::Sum(rtmp, nrtmp, val, sum, NQ * B, segb, sege);
     cudaMalloc(&rtmp, nrtmp);
   }
+  double4 *vbuf = NULL;
+  double *vval = NULL, *vsum = NULL, *vaccd = NULL, *vacc = NULL;
+  long *vcnt = NULL;
+  int *vsb = NULL, *vse = NULL;
+  void *vtmp = NULL;
+  size_t nvtmp = 0;
+  if (vevery) {
+    int *hb = (int *)malloc(nl * B * sizeof *hb), *he = (int *)malloc(nl * B * sizeof *he);
+    for (k = 0; k < nl; k++)
+      for (q = 0; q < B; q++)
+        hb[k * B + q] = k * n + off[q], he[k * B + q] = k * n + off[q] + hc[q].n;
+    cudaMalloc(&vbuf, (size_t)nl * n * sizeof *vbuf), cudaMalloc(&vval, (size_t)nl * n * sizeof *vval);
+    cudaMalloc(&vsum, nl * B * sizeof *vsum);
+    cudaMalloc(&vsb, nl * B * sizeof *vsb), cudaMalloc(&vse, nl * B * sizeof *vse);
+    cudaMemcpy(vsb, hb, nl * B * sizeof *hb, cudaMemcpyHostToDevice);
+    cudaMemcpy(vse, he, nl * B * sizeof *he, cudaMemcpyHostToDevice);
+    cub::DeviceSegmentedReduce::Sum(vtmp, nvtmp, vval, vsum, nl * B, vsb, vse);
+    cudaMalloc(&vtmp, nvtmp);
+    cudaMalloc(&vaccd, nl * B * sizeof *vaccd);
+    cudaMemset(vaccd, 0, nl * B * sizeof *vaccd);
+    vacc = (double *)calloc(nl * B, sizeof *vacc);
+    vcnt = (long *)calloc(nl, sizeof *vcnt);
+  }
   cudaMalloc(&full, (size_t)cap * n * sizeof *full), cudaMalloc(&nfull, n * sizeof *nfull);
   cudaMalloc(&own, (size_t)capo * n * sizeof *own), cudaMalloc(&rem, n * sizeof *rem);
   cudaMalloc(&over, 2 * sizeof *over);
@@ -653,6 +705,19 @@ int main(int argc, char **argv) {
           fputc('\n', fk[q]);
         }
     }
+    int allsync = vevery && step >= vstart && (step - vstart) % vevery == 0;
+    for (q = 0; q < B; q++)
+      allsync &= step <= steps[q] && step % every[q] == 0;
+    if (allsync) {
+      int now = ns % nl, nfill = ns + 1 < nl ? ns + 1 : nl;
+      vput<<<nb, 256>>>(bx, id, v, vbuf, now);
+      vdot<<<nb, 256>>>(bx, id, v, vbuf, now, nfill, nl, vval);
+      cub::DeviceSegmentedReduce::Sum(vtmp, nvtmp, vval, vsum, nl * B, vsb, vse);
+      vadd<<<(nfill * B + 255) / 256, 256>>>(nfill * B, vsum, vaccd);
+      for (k = 0; k < nfill; k++)
+        vcnt[k]++;
+      ns++;
+    }
     if (step == maxsteps)
       break;
     for (q = 0; q < B; q++)
@@ -668,6 +733,21 @@ int main(int argc, char **argv) {
   cudaEventElapsedTime(&ms, t0, t1);
   for (q = 0; q < B; q++)
     fclose(file[q]), fclose(fk[q]);
+  if (vevery)
+    cudaMemcpy(vacc, vaccd, nl * B * sizeof *vacc, cudaMemcpyDeviceToHost);
+  if (vevery)
+    for (q = 0; q < B; q++) {
+      FILE *fv;
+      snprintf(line, sizeof line, "%s.v", name[q]);
+      if ((fv = fopen(line, "w")) == NULL)
+        continue;
+      fprintf(fv, "# n %d samples %ld; t, <v_i(0).v_i(t)> averaged over particles and origins\n",
+              hc[q].n, vcnt[0]);
+      for (k = 0; k < nl; k++)
+        if (vcnt[k])
+          fprintf(fv, "%.10g %.15g\n", k * vevery * hc[q].dt, vacc[k * B + q] / (vcnt[k] * hc[q].n));
+      fclose(fv);
+    }
   fprintf(stderr, "%s: boxes %d n %d steps %d time %.3f s %.3g particle-steps/s\n", argv[0], B, n,
           maxsteps, ms / 1e3, (double)n * maxsteps / (ms / 1e3));
   cudaError_t err = cudaGetLastError();
