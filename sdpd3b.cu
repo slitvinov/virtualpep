@@ -375,7 +375,7 @@ __global__ void update(const int *bx, const Sched *sched, double *S, const doubl
 }
 
 #define NM 4
-#define NQ (9 + 10 * NM)
+#define NQ (9 + 30 * NM)
 
 __global__ void diag(const int *bx, const double4 *p, const double4 *v, const double *S,
                      double *val) {
@@ -389,14 +389,17 @@ __global__ void diag(const int *bx, const double4 *p, const double4 *v, const do
                  fma(1.5, vi.w, 0.5 * v2), S[i], v2, vi.w, vi.w * vi.w, vi.x, vi.y, vi.z};
   for (int k = 0; k < 9; k++)
     val[k * cn + i] = q[k];
-  for (int m = 1; m <= NM; m++) {
-    double sn, cs, f[5] = {vi.x, vi.y, 1, vi.w, S[i]};
-    sincospi(2 * m * pi.y * c.Lyi, &sn, &cs);
-    for (int k = 0; k < 5; k++) {
-      val[(9 + 10 * (m - 1) + 2 * k) * cn + i] = f[k] * cs;
-      val[(10 + 10 * (m - 1) + 2 * k) * cn + i] = f[k] * sn;
+  double x[3] = {pi.x * c.Lxi, pi.y * c.Lyi, pi.z * c.Lzi}, u[3] = {vi.x, vi.y, vi.z};
+  for (int a = 0; a < 3; a++)
+    for (int m = 1; m <= NM; m++) {
+      double sn, cs, f[5] = {u[a], u[(a + 1) % 3], u[(a + 2) % 3], 1, S[i]};
+      sincospi(2 * m * x[a], &sn, &cs);
+      for (int k = 0; k < 5; k++) {
+        int q = 9 + 10 * (NM * a + m - 1) + 2 * k;
+        val[q * cn + i] = f[k] * cs;
+        val[(q + 1) * cn + i] = f[k] * sn;
+      }
     }
-  }
 }
 
 static int n, nb, ncells, bits, B, nw;
@@ -542,8 +545,9 @@ int main(int argc, char **argv) {
       fprintf(stderr, "%s: cannot write %s\n", argv[0], line);
       return 1;
     }
-    fprintf(fk[B], "# k1 %.10g n %d; t, then for m = 1..%d: vx, vy, 1, T, S times cos and sin of m k1 y, "
-                   "summed and divided by n\n", 2 * M_PI / c.Ly, c.n, NM);
+    fprintf(fk[B], "# k1 %.10g %.10g %.10g n %d; t, then for directions x, y, z and m = 1..%d: "
+                   "v along, v across (two, cyclic), 1, S times cos and sin of m k1 r, summed and "
+                   "divided by n\n", 2 * M_PI / c.Lx, 2 * M_PI / c.Ly, 2 * M_PI / c.Lz, c.n, NM);
     B++;
   }
   if (fgets(line, sizeof line, stdin)) {

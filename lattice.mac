@@ -5,7 +5,7 @@ lattice sums are exact; no continuum integral is used.
 
   density   dd = -i U_y A1,            A1 = sum F rho_y sin(k rho_y)
   T/d       pi = ((2/3) s - (1/3) dd/d0)/d0
-  pressure  dV/dt = -i pi A1 e_y + (2/d0) M U,
+  pressure  dV/dt = -i pi A1 e_y + (2/d0) M U, P/d^2 = T/d falls with d
             M_ab = sum (1 - cos(k rho_y)) (F delta_ab + F' rho_a rho_b/rho)
   friction  dV/dt = -G V,
             G_ab = sum (1 - cos(k rho_y)) F (a delta_ab + c e_a e_b)/d0^2
@@ -50,8 +50,8 @@ modes(h, k, eta, zeta, kappa):= block([S: sites(h), d0: 0, A1: 0, B: 0,
   Gxx: Gxx/d0^2, Gyy: Gyy/d0^2,
   [d0, matrix([0, 1], [2*Mxx/d0, -Gxx]),
    matrix([0, 1, 0],
-          [2*Myy/d0 - A1^2/(3*d0^3), -Gyy, 2*A1/(3*d0)],
-          [4*kappa*B*A1/(3*d0^3), 0, -4*kappa*B/(3*d0^2)])])$
+          [2*Myy/d0 + A1^2/(3*d0^3), -Gyy, 2*A1/(3*d0)],
+          [4*kappa*B*A1/(3*d0^3), 0, -4*kappa*B/(3*d0^2)]), 2*Myy/d0])$
 
 /* continuum limit: small k at fixed h gives the transport coefficients */
 block([r: modes(3.0, 1e-3, 1, 0, 1), k: 1e-3],

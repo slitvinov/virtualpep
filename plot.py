@@ -26,8 +26,9 @@ for dim in 2, 3:
             s = np.loadtxt(f"{name}{dim}.{h}")
             ax.plot(s[:, 0], s[:, 1], marker, color=color, ms=5,
                     label=f"$h/l_0 = {h}$")
-            if name == "nu" and os.path.exists(f"latt{dim}.{h}"):
-                l = np.loadtxt(f"latt{dim}.{h}")
+            lf = f"latt{dim}.{h}" if name == "nu" else f"latt{dim}s.{h}"
+            if os.path.exists(lf):
+                l = np.loadtxt(lf)
                 ax.plot(l[:, 0], l[:, 1], "--", color=color, lw=1,
                         label=f"lattice, $h/l_0 = {h}$")
         ax.axhline(1, color="#d8d7d2", lw=1, zorder=0)

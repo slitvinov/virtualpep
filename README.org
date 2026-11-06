@@ -80,3 +80,11 @@ equipartition.mac.
 dt = 0.01, 32 replicas per N, [[file:nplot.py]]
 
 [[file:equipartition.svg]]
+
+* Thermal fluctuations
+Equilibrium autocorrelations of Fourier modes, 64 replicas of 13500
+particles, kB = 0.01. Theory: [[file:fluid.mac]] (linear modes from the
+energy e(d, S), noise from fluctuation-dissipation) with the kernel
+factors of [[file:modes.mac]], [[file:spec.py]].
+
+[[file:spectra.svg]]

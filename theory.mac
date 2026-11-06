@@ -9,7 +9,9 @@ nu2(k):= 2/k^2*quad_qags((1 - bessel_j(0, k*r))*F2(r)*2*%pi*r, r, 0, 1)[1]$
 c2(k):= sqrt(quad_qags(bessel_j(0, k*r)*W2(r)*2*%pi*r, r, 0, 1)[1])$
 g(a):= ''(integrate((1 - cos(a*u))*(3 - u^2)/2, u, -1, 1))$
 nu3(k):= 2*%pi/k^2*quad_qags(5/3*r^2*F3(r)*g(k*r), r, 0, 1)[1]$
-c3(k):= sqrt(quad_qags(sin(k*r)/(k*r)*W3(r)*4*%pi*r^2, r, 0, 1)[1])$
+/* 3D: c^2/c0^2 = (6 W - W^2)/5 from the energy e(d, S), see fluid.mac */
+W3k(k):= quad_qags(sin(k*r)/(k*r)*W3(r)*4*%pi*r^2, r, 0, 1)[1]$
+c3(k):= block([w: W3k(k)], sqrt((6*w - w^2)/5))$
 
 lh: makelist(0.8*1.025^i, i, 0, 120)$
 with_stdout("theory2", for l in lh do
