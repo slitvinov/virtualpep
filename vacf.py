@@ -75,6 +75,7 @@ ax.errorbar(t[pos], full[pos] / full[0], 1.96 * err[pos] / full[0], fmt="o", ms=
 ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
 ax.set_xticks([2, 5, 10, 20, 50])
 ax.set_xticklabels(["2", "5", "10", "20", "50"])
+ax.set_ylim(3e-6, 2e-3)
 ax.set_xlabel("$t$")
 ax.set_ylabel(r"$C(t)/C(0)$")
 ax.legend(frameon=False)
