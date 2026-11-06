@@ -57,3 +57,13 @@ pair against the exact distribution.
 [[file:stats.py]]: Gamma method over replicas, U. Wolff,
 hep-lat/0306017; replica jackknife; equilibration time, J. Chodera,
 J. Chem. Theory Comput. 12, 1799 (2016).
+
+* Equipartition
+N = 256, kB = 0.01, 64 replicas, sdpd3b. Exact values from
+equipartition.mac.
+
+|   dt | <m v_a^2>/<kB T>    | <dT^2>/<T>^2           |
+|------+---------------------+------------------------|
+| 0.01 | 0.996184 +- 0.000075 | 0.0066395 +- 0.0000011 |
+| 0.02 | 0.996008 +- 0.000057 | 0.0066404 +- 0.0000008 |
+| exact | 0.996094            | 0.0066407              |
