@@ -1,5 +1,5 @@
 /* Linear modes of deterministic 3D SDPD about the perfect fcc lattice
-(density 1, Lucy kernel). A plane wave along y with amplitudes of
+(density 1, Wendland C2 kernel; set kernel: lucy for Lucy). A plane wave along y with amplitudes of
 displacement U, velocity V and entropy s. With rho = R_i - R_j the
 lattice sums are exact; no continuum integral is used.
 
@@ -16,9 +16,15 @@ with a = 5 eta/3 - zeta, c = a/3 + 16 zeta/3 + 10 eta/9. Shear (x) is
 
 linel: 300$
 fpprec: 20$
-W(r):= float(105/(16*%pi*h^3))*(1 + 3*r/h)*(1 - r/h)^3$
-F(r):= float(315/(4*%pi*h^5))*(1 - r/h)^2$
-dF(r):= float(-630/(4*%pi*h^6))*(1 - r/h)$
+if not member(kernel, [lucy]) then kernel: wendland$
+if kernel = lucy then (
+  W(r):= float(105/(16*%pi*h^3))*(1 + 3*r/h)*(1 - r/h)^3,
+  F(r):= float(315/(4*%pi*h^5))*(1 - r/h)^2,
+  dF(r):= float(-630/(4*%pi*h^6))*(1 - r/h))
+else (
+  W(r):= float(21/(2*%pi*h^3))*(1 + 4*r/h)*(1 - r/h)^4,
+  F(r):= float(210/(%pi*h^5))*(1 - r/h)^3,
+  dF(r):= float(-630/(%pi*h^6))*(1 - r/h)^2)$
 
 /* fcc points A/2 (i, j, l) with i + j + l even, A = 4^(1/3) */
 sites(h):= block([A: float(4^(1/3)), m, out: []],
@@ -57,7 +63,7 @@ block([r: modes(3.0, 1e-3, 1, 0, 1), k: 1e-3],
   print("elastic shear 2 Mxx/d0/k^2 ->", r[2][2, 1]/k^2))$
 
 /* write k h, d0 and the matrices for the runs to compare against */
-with_stdout("lattice3", for h in [3, 4] do
+with_stdout(concat("lattice3.", kernel), for h in [3, 4] do
   for rows in [8, 12, 16, 24, 32, 48, 64] do
     block([A: float(4^(1/3)), k, P],
       k: float(2*%pi/(rows*A/2)),

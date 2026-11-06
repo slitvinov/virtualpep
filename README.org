@@ -29,11 +29,12 @@ maxima -b theory.mac
 python3 plot.py
 #+END_SRC
 
-2D, viscosity and sound speed against theory
+2D, Lucy: viscosity and sound speed against theory.mac
 
 [[file:sdpd2.svg]]
 
-3D
+3D, Wendland; dashed: lattice theory, [[file:lattice.mac]] and
+[[file:latt.py]]
 
 [[file:sdpd3.svg]]
 
@@ -75,3 +76,7 @@ equipartition.mac.
 | 0.01 | 0.996184 +- 0.000075 | 0.0066395 +- 0.0000011 |
 | 0.02 | 0.996008 +- 0.000057 | 0.0066404 +- 0.0000008 |
 | exact | 0.996094            | 0.0066407              |
+
+dt = 0.01, 32 replicas per N, [[file:nplot.py]]
+
+[[file:equipartition.svg]]

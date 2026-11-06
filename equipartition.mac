@@ -8,7 +8,7 @@ distributed. */
 assume(kB > 0, d > 0, En > 0, N > 1, E0 > 0)$
 eos[2]: d*X$
 eos[3]: 3/2*d^(2/3)*X^(2/3)$
-for n: 2 thru 3 do block([S_E, w, c, f, a, b, K, U, ratio, al, var],
+for n: 2 thru 3 do block([S_E, w, c, f, a, b, K, U, ratio, al, var, varK, spread],
   S_E: log(rhs(first(solve(eos[n] = En, X)))),
   w: radcan(exp(S_E/kB)*diff(S_E, En)),
   c: ratsimp(En*diff(log(w), En) + 1)*kB,
@@ -20,5 +20,8 @@ for n: 2 thru 3 do block([S_E, w, c, f, a, b, K, U, ratio, al, var],
   ratio: ratsimp((2*K/(n*N))/(kB*U/(c*N))),
   al: c/kB,
   var: ratsimp((a + b - al)/(al*(a + b + 1))),
+  varK: ratsimp(b/(a*(a + b + 1))),
+  spread: ratsimp((N - 1)/(N*al + 1)),
   print(n, "D: w(E) =", w, ", C =", c, ", <m v_a^2>/<kB T> =", ratio,
-    ", <dT^2>/<T>^2 =", var, "->", limit(var, N, inf)))$
+    ", <dT^2>/<T>^2 =", var, "->", limit(var, N, inf),
+    ", var(K)/<K>^2 =", varK, ", snapshot spread of T =", spread))$

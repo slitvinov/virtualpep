@@ -16,8 +16,10 @@ sdpd3d
 sdpd3cu
 sdpd3b
 __pycache__/
-lattice3
+lattice3.*
 modes3
 pairtest
 sdpd2w
 sdpd3w
+latt3.raw
+latt3.?

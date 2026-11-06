@@ -1,0 +1,10 @@
+/* shear matrices of lattice.mac for the points of run.sh in 3D, eta = 10 */
+batchload("lattice.mac")$
+linel: 300$
+with_stdout("latt3.raw", for h in [3, 4] do
+  for lh in [1, 1.25, 1.5, 2, 2.5, 3, 4, 6, 8, 12, 16] do
+    block([row: 0.7937005, rows, k, P],
+      rows: floor(lh*h/row + 0.5),
+      k: float(2*%pi/(rows*row)),
+      P: modes(float(h), k, 10, 0, 0),
+      print(h, rows*row/h, k, P[2][2, 1], P[2][2, 2])))$
