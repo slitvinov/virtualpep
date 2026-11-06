@@ -29,11 +29,19 @@ maxima -b theory.mac
 python3 plot.py
 #+END_SRC
 
+2D, viscosity and sound speed against theory
+
 [[file:sdpd2.svg]]
+
+3D
 
 [[file:sdpd3.svg]]
 
+2D, shear wave, colored by v_x
+
 [[file:img/sdpd2.gif]]
+
+3D
 
 [[file:img/sdpd3.gif]]
 
