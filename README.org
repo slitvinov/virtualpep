@@ -88,3 +88,11 @@ energy e(d, S), noise from fluctuation-dissipation) with the kernel
 factors of [[file:modes.mac]], [[file:spec.py]].
 
 [[file:spectra.svg]]
+
+* Velocity autocorrelation
+kB = 0.1, 512 replicas of 13500 particles, t = 1600 each, sampled in
+sdpd3b (./sdpd3b 25 100 2000 < list). Mode sum over the box: fluid
+theory of [[file:fluid.mac]], self-diffusion e^{-D k^2 t},
+[[file:vacf.py]]. The bump near t = 37 is sound crossing the box twice.
+
+[[file:vacf.svg]]
