@@ -1,0 +1,24 @@
+/* Equilibrium of N SDPD particles at fixed total energy E0 and zero
+total momentum. The stationary density of GENERIC is exp(S_tot/kB) in
+(x, v, S); with X = exp(S), changing S_i to the internal energy E_i
+gives a weight w(E_i) dE_i. The kinetic energy K has f = n (N - 1)
+quadratic degrees of freedom, so K/E0 and every E_i/E0 are Dirichlet
+distributed. */
+
+assume(kB > 0, d > 0, En > 0, N > 1, E0 > 0)$
+eos[2]: d*X$
+eos[3]: 3/2*d^(2/3)*X^(2/3)$
+for n: 2 thru 3 do block([S_E, w, c, f, a, b, K, U, ratio, al, var],
+  S_E: log(rhs(first(solve(eos[n] = En, X)))),
+  w: radcan(exp(S_E/kB)*diff(S_E, En)),
+  c: ratsimp(En*diff(log(w), En) + 1)*kB,
+  f: n*(N - 1),
+  a: f/2,
+  b: N*c/kB,
+  K: E0*a/(a + b),
+  U: E0*b/(a + b),
+  ratio: ratsimp((2*K/(n*N))/(kB*U/(c*N))),
+  al: c/kB,
+  var: ratsimp((a + b - al)/(al*(a + b + 1))),
+  print(n, "D: w(E) =", w, ", C =", c, ", <m v_a^2>/<kB T> =", ratio,
+    ", <dT^2>/<T>^2 =", var, "->", limit(var, N, inf)))$

@@ -152,11 +152,12 @@ static void dissipate(void) {
 }
 
 int main(int argc, char **argv) {
-  int mode, rows, waves, nrow, ncol, i, j, k, step, steps, every;
+  int mode, rows, waves, nrow, ncol, i, j, k, step, steps, every, dump;
   double s, hy, lambda, kw, amp, u, E, Stot, v2, Tm;
-  if (argc != 11) {
+  if (argc != 11 && argc != 13) {
     fprintf(stderr,
-            "usage: %s shear|sound|rest h rows eta zeta kappa kB dt steps every\n",
+            "usage: %s shear|sound|rest h rows eta zeta kappa kB dt steps every "
+            "[amp dumpevery]\n",
             argv[0]);
     return 1;
   }
@@ -170,6 +171,7 @@ int main(int argc, char **argv) {
   dt = atof(argv[8]);
   steps = atoi(argv[9]);
   every = atoi(argv[10]);
+  dump = argc == 13 ? atoi(argv[12]) : 0;
 
   s = sqrt(2 / sqrt(3));
   hy = s * sqrt(3) / 2;
@@ -178,14 +180,14 @@ int main(int argc, char **argv) {
   if (rows * waves % 2)
     waves++;
   nrow = rows * waves;
-  ncol = (int)ceil(3 * h / s);
+  ncol = (int)ceil((dump > 0 && lambda > 3 * h ? lambda : 3 * h) / s);
   Lx = ncol * s;
   Ly = nrow * hy;
   n = ncol * nrow;
   ncx = 3 * (int)(Lx / h / 3);
   ncy = 3 * (int)(Ly / h / 3);
   kw = 2 * M_PI / lambda;
-  amp = argv[1][0] == 'r' ? 0 : 1e-3;
+  amp = argc == 13 ? atof(argv[11]) : argv[1][0] == 'r' ? 0 : 1e-3;
 
   x = malloc(n * sizeof *x), y = malloc(n * sizeof *y);
   vx = malloc(n * sizeof *vx), vy = malloc(n * sizeof *vy);
@@ -209,6 +211,16 @@ int main(int argc, char **argv) {
 
   printf("# lambda/h %.6g k %.10g n %d\n", lambda / h, kw, n);
   for (step = 0; step <= steps; step++) {
+    if (dump > 0 && step % dump == 0) {
+      char name[64];
+      FILE *file;
+      snprintf(name, sizeof name, "dump.%06d", step / dump);
+      file = fopen(name, "w");
+      fprintf(file, "ITEM: TIMESTEP\n%d\nITEM: NUMBER OF ATOMS\n%d\nITEM: BOX BOUNDS pp pp pp\n0 %.10g\n0 %.10g\n-0.5 0.5\nITEM: ATOMS x y z vx vy T\n", step, n, Lx, Ly);
+      for (i = 0; i < n; i++)
+        fprintf(file, "%.6g %.6g 0 %.6g %.6g %.6g\n", x[i], y[i], vx[i], vy[i], T[i]);
+      fclose(file);
+    }
     if (step % every == 0) {
       for (u = 0, E = 0, Stot = 0, v2 = 0, Tm = 0, i = 0; i < n; i++) {
         u += (mode ? vy[i] : vx[i]) * sin(kw * y[i]);

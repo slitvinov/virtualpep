@@ -27,7 +27,7 @@ Lucy, or Wendland C2 with -DWENDLAND.
 
 #+BEGIN_SRC sh
 make CC=gcc
-./sdpd2 shear|sound|rest h rows eta zeta kappa kB dt steps every
+./sdpd2 shear|sound|rest h rows eta zeta kappa kB dt steps every [amp dumpevery]
 sh run.sh
 maxima -b theory.mac
 python3 plot.py
@@ -37,6 +37,47 @@ run.sh measures the viscosity from the decay of a shear wave and the
 sound speed from a sound wave as a function of lambda/h, as in Figs. 2
 and 3 of the paper; theory.mac gives the linear response of the
 discrete operators.
+
+[[file:sdpd2.svg]]
+
+[[file:sdpd3.svg]]
+
+With two extra arguments, amp and dumpevery, the programs write LAMMPS
+dump files. A shear wave decaying into thermal fluctuations, colored
+by v_x:
+
+#+BEGIN_SRC sh
+./sdpd2 shear 3 32 1 0 0 1e-4 0.02 3000 100 0.05 20
+./sdpd3 shear 3 32 1 0 0 1e-4 0.02 2500 100 0.05 20
+#+END_SRC
+
+[[file:img/sdpd2.gif]]
+
+[[file:img/sdpd3.gif]]
+
+* Equipartition
+[[file:equipartition.mac]] gives the exact equilibrium of N particles at
+fixed energy and zero momentum: <m v_a^2>/<kB T> = (N - 1)/N and
+<dT^2>/<T>^2 -> kB/C_v, see [[file:logs/equipartition.log]]. With kB =
+0.01 the simulations give 0.98706 +- 0.00057 for N = 72 in 2D (theory
+0.98611) and 0.99597 +- 0.00038 for N = 256 in 3D (theory 0.99609), and
+<dT^2>/<T>^2 = 0.00999 +- 0.00011 for N = 90 in 2D (theory 0.00989).
+
+* CUDA
+[[file:sdpd3.cu]] is the 3D solver on the GPU with the same arguments
+and output as sdpd3.c; a negative dumpevery gives a cubic box without
+dumps. Particles are sorted by cell every step, one sweep builds the
+density and the neighbor lists, and the pair updates run one warp per
+cell in 27 colors, so they stay sequential and conserve energy and
+momentum exactly.
+
+#+BEGIN_SRC sh
+make sdpd3cu
+./sdpd3cu rest 3 120 1 0 1 1e-2 0.01 20 1000 0 -1
+#+END_SRC
+
+On a GH200 it gives 4.9e7 particle-steps/s for 864000 particles and
+7.8e7 for 6912000.
 
 * Run
 #+BEGIN_SRC sh
