@@ -10,12 +10,8 @@ gives the equilibrium covariance kB T H^-1. */
 
 assume(Wk > 0, k > 0, Gv > 0, GS > 0)$
 e: 3/2*d^(2/3)*exp(2*S/3)$
-at0(ex):= subst([d = 1, S = 0], ex)$
-ed: at0(diff(e, d))$
-edd: at0(diff(e, d, 2))$
-edS: at0(diff(e, d, 1, S, 1))$
-eSS: at0(diff(e, S, 2))$
-[ed, edd, edS, eSS];
+[ed, edd, edS, eSS]: at([diff(e, d), diff(e, d, 2), diff(e, d, 1, S, 1), diff(e, S, 2)],
+  [d = 1, S = 0]);
 E2: V^2/2 + ed*k^2*Wk*U^2 + edd*(Wk*k*U)^2/2 + edS*Wk*k*U*s + eSS*s^2/2$
 x: [U, V, s]$
 H: genmatrix(lambda([a, b], diff(E2, x[a], 1, x[b], 1)), 3, 3);
@@ -25,7 +21,7 @@ M: (J - D) . H$
 C0: kB*T*invert(H)$
 lyapunov: ratsimp(M . C0 + C0 . transpose(M) + 2*kB*T*D);
 /* heat conduction in S: s' = -GS (2/3)(Wk k U + s), the SDPD heat flux */
-heat: ratsimp(row(M, 3)[1] . [U, V, s] + GS*2/3*(Wk*k*U + s));
+heat: ratsimp(M[3] . x + GS*2/3*(Wk*k*U + s));
 /* sound speeds: adiabatic s fixed, isothermal s relaxed */
 cS2: ratsimp(H[1, 1]/k^2);
 cT2: ratsimp((H[1, 1] - H[1, 3]^2/H[3, 3])/k^2);

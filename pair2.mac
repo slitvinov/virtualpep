@@ -46,9 +46,9 @@ P: unit(makelist(drift[c] + drift[n + c], c, 1, n));
 
 /* eq. (63) for the pair */
 d: Ti*Tk/(Ti + Tk)^2*(kB/Ci + kB/Ck)$
-vdrift: unit(makelist(m*drift[c] + (1 - d)*(a*v[c] + (b)*ve*e[c]), c, 1, n));
+vdrift: unit(makelist(m*drift[c] + (1 - d)*(a*v[c] + b*ve*e[c]), c, 1, n));
 Sdrift: unit(Ti*drift[2*n + 1]
-  - 1/2*(1 - d - Tk/(Ti + Tk)*kB/Ci)*(a*vv + (b)*ve^2)
+  - 1/2*(1 - d - Tk/(Ti + Tk)*kB/Ci)*(a*vv + b*ve^2)
   + 2*kB/m*Ti*Tk/(Ti + Tk)*(2*a + b)
   + 2*kappa*f*(Ti - Tk) + 2*kappa*kB/Ci*f*Tk);
 

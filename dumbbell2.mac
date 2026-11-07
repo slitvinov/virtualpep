@@ -11,31 +11,30 @@ unit(ex):= ratsimp(expand(ex))$
 /* irreversible part of one particle, x = (Q, S) */
 gradef(T, S, T/C)$
 gradef(E, S, T)$
-x: append(makelist(Q[c], c, 1, n), [S])$
-dx: append(makelist(sqrt(2*kB*T/zeta)*w[c], c, 1, n),
-  [-H*sum(Q[c]*sqrt(2*kB*T/zeta)*w[c], c, 1, n)/T])$
+q: makelist(Q[c], c, 1, n)$
+dq: sqrt(2*kB*T/zeta)*makelist(w[c], c, 1, n)$
+x: endcons(S, q)$
+dx: endcons(-H/T*(q . dq), dq)$
 nx: length(x)$
 ito(ex):= block([ex: expand(ex)], sum(coeff(ex, w[c], 2), c, 1, n))$
 Q2: genmatrix(lambda([r, s], ito(dx[r]*dx[s])), nx, nx)$
 M: Q2/(2*kB)$
 drift: makelist(sum(M[r, s]*diff(S, x[s]) + kB*diff(M[r, s], x[s]), s, 1, nx), r, 1, nx)$
-relax: unit(makelist(drift[c] + H/zeta*Q[c], c, 1, n));
-heat: unit(T*drift[n + 1] - (H^2/zeta*sum(Q[c]^2, c, 1, n)*(1 - kB/C) - n*H*kB*T/zeta));
-Etot: H/2*sum(Q[c]^2, c, 1, n) + E$
+relax: unit(rest(drift, -1) + H/zeta*q);
+heat: unit(T*last(drift) - (H^2/zeta*(q . q)*(1 - kB/C) - n*H*kB*T/zeta));
+Etot: H/2*(q . q) + E$
 dE: unit(sum(diff(Etot, x[r])*drift[r], r, 1, nx)
   + 1/2*sum(sum(diff(Etot, x[r], 1, x[s], 1)*Q2[r, s], r, 1, nx), s, 1, nx));
-Qeq: solve(ratsubst(q2, sum(Q[c]^2, c, 1, n),
-  expand(2*sum(Q[c]*drift[c], c, 1, n) + sum(Q2[c, c], c, 1, n))), q2);
+Qeq: solve(ratsubst(q2, q . q,
+  expand(2*(q . rest(drift, -1)) + sum(Q2[c, c], c, 1, n))), q2);
 
 /* reversible part of one pair (i, j): convection of Q and the polymer force */
 rij: makelist(r[c], c, 1, n)$
 vij: makelist(vi[c] - vj[c], c, 1, n)$
-rQ(q):= sum(r[c]*q[c], c, 1, n)$
 Qi: makelist(qi[c], c, 1, n)$
 Qj: makelist(qj[c], c, 1, n)$
-dQi: Fij/di*vij*rQ(Qi)$
-dQj: Fij/dj*vij*rQ(Qj)$
-fi: -H*Fij*(Qi*rQ(Qi)/di + Qj*rQ(Qj)/dj)$
+dQi: Fij/di*vij*(rij . Qi)$
+dQj: Fij/dj*vij*(rij . Qj)$
+fi: -H*Fij*(Qi*(rij . Qi)/di + Qj*(rij . Qj)/dj)$
 momentum: unit(fi + (-fi));
-energy: unit(sum(vi[c]*fi[c] - vj[c]*fi[c], c, 1, n)
-  + H*sum(Qi[c]*dQi[c] + Qj[c]*dQj[c], c, 1, n));
+energy: unit(vij . fi + H*(Qi . dQi + Qj . dQj));

@@ -11,11 +11,11 @@ For each move we check that the probability flux vanishes in nu and
 derive the log acceptance of the Metropolis-Hastings correction. */
 
 assume(kB > 0, C > 0, f > 0, kappa > 0, g > 0, ei > 0, ej > 0, E > 0)$
-lognu(ei, ej):= (C*log(ei) + C*log(ej))/kB - log(ei/C) - log(ej/C)$
+T(e):= e/C$
+lognu(ei, ej):= (C*log(ei) + C*log(ej))/kB - log(T(ei)) - log(T(ej))$
 flux(b, s2, x, lnu):= ratsimp(exp(-lnu)*(b*exp(lnu) - diff(s2*exp(lnu), x)/2))$
 
 /* friction along one direction with d = kB Ti Tj/(Ti + Tj)^2 (1/C + 1/C) */
-T(e):= e/C$
 Ei: e1 - (u^2 - u0^2)/8$
 Ej: e2 - (u^2 - u0^2)/8$
 tt: T(Ei)*T(Ej)/(T(Ei) + T(Ej))$
@@ -35,4 +35,4 @@ loga(lnu1, lnu0, x0, x1, b1, s1, s0, G):=
    its reverse uses a, s at the new energies, so the move is exact only
    when tt and d do not change */
 V: 4*kB*tt/(1 - d)$
-taylor(subst([u = u0], V), kB, 0, 1);
+taylor(subst(u = u0, V), kB, 0, 1);
